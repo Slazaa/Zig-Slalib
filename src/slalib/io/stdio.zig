@@ -2,65 +2,57 @@ const Error = @import("error.zig").Error;
 const Read = @import("read.zig").Read;
 const Write = @import("write.zig").Write;
 
-const builtin = @import("builtin");
-const c = @cImport({
-    @cInclude("stdio.h");
-});
+pub const Stdin = struct {
+    const Self = @This();
 
-const c_stdout = c.stdout;
-
-pub fn stdin() type {
-    return struct {
-        const Self = @This();
-
-        read: Read = .{
-            .read_fn = read
-        },
-
-        fn read(read_iface: *const Read, buf: []u8) Error!usize {
-            // TODO: - Read from Stdin
-
-            _ = read_iface;
-            _ = buf;
-
-            @panic("Function not implemented yet");
-        }
+    pub const read = Read {
+        .read_fn = read_fn
     };
-}
 
-pub fn stdout() type {
-    return struct {
-        const Self = @This();
+    fn read_fn(read_iface: *const Read, buf: []u8) Error!usize {
+        // TODO: - Read from stdin
 
-        write: Write = .{
-            .write_fn = write,
-            .flush_fn = flush
-        },
+        _ = read_iface;
+        _ = buf;
 
-        fn write(write_iface: *const Write, buf: []const u8) Error!usize {
-            _ = write_iface;
-            _ = buf;
+        @panic("Function not implemented yet");
+    }
+};
 
-            @panic("Function not implemented yet");
-        }
+pub const Stdout = struct {
+    const Self = @This();
 
-        fn flush(write_iface: *const Write) Error!void {
-            _ = write_iface;
-
-            if (c.fflush(c_stdout) == c.EOF) {
-                return Error.FlushFailed;
-            }
-        }
+    pub const write = Write {
+        .write_fn = write_fn,
+        .flush_fn = flush_fn
     };
-}
+
+    fn write_fn(write_iface: *const Write, buf: []const u8) Error!usize {
+        // TODO: - Write to stdout
+
+        _ = write_iface;
+        _ = buf;
+
+        @panic("Function not implemented yet");
+    }
+
+    fn flush_fn(write_iface: *const Write) Error!void {
+        // TODO: - Flush stdout
+
+        _ = write_iface;
+
+        @panic("Function not implemented yet");
+    }
+};
 
 pub fn print(buf: []const u8) void {
-    _ = stdout().write.write(buf) catch @panic("Failed to write");
-    stdout().write.flush() catch @panic("Failed to flush");
+    _ = buf;
+    
+    @panic("Function not implemented yet");
 }
 
 pub fn println(buf: []const u8) void {
-    _ = stdout().write.write(buf) catch @panic("Failed to write");
-    _ = stdout().write.write("\n") catch @panic("Failed to write");
-    stdout().write.flush() catch @panic("Failed to flush");
+    _ = buf;
+
+    @panic("Function not implemented yet");
 }

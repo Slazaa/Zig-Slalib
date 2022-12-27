@@ -7,14 +7,14 @@ const c = @cImport({
 pub const GlobAlloc = struct {
     const Self = @This();
 
-    allocator: Allocator = .{
-        .alloc_fn = alloc,
-        .realloc_fn = realloc,
-        .dealloc_fn = dealloc
-    },
+    pub const allocator = Allocator {
+        .alloc_fn = alloc_fn,
+        .realloc_fn = realloc_fn,
+        .dealloc_fn = dealloc_fn
+    };
 
-    // Allocator implementation
-    fn alloc(allocator_iface: *const Allocator, size: usize) Error!*anyopaque {
+    // Allocator impl
+    fn alloc_fn(allocator_iface: *const Allocator, size: usize) Error!*anyopaque {
         _ = allocator_iface;
 
         var ptr = c.malloc(size);
@@ -26,7 +26,7 @@ pub const GlobAlloc = struct {
         return ptr.?;
     }
 
-    fn realloc(allocator_iface: *const Allocator, ptr: *anyopaque, size: usize) Error!*anyopaque {
+    fn realloc_fn(allocator_iface: *const Allocator, ptr: *anyopaque, size: usize) Error!*anyopaque {
         _ = allocator_iface;
 
         var new_ptr = c.realloc(ptr, size);
@@ -38,13 +38,9 @@ pub const GlobAlloc = struct {
         return new_ptr.?;
     }
 
-    fn dealloc(allocator_iface: *const Allocator, ptr: *anyopaque) void {
+    fn dealloc_fn(allocator_iface: *const Allocator, ptr: *anyopaque) void {
         _ = allocator_iface;
         
         c.free(ptr);
     }
 };
-
-pub fn glob_alloc() GlobAlloc {
-    return .{ };
-}

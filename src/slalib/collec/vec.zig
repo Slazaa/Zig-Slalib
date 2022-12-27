@@ -1,17 +1,18 @@
 const mem = @import("../mem.zig");
-const glob_alloc = @import("../mem/glob_alloc.zig");
-const GlobAlloc = glob_alloc.glob_alloc().allocator;
+const iter = @import("../iter.zig");
+const std = @import("std");
 
-pub fn Vec(comptime T: type) type {
+pub fn Vec(comptime T: type, comptime A: ?*const mem.Allocator) type {
     return struct {
         const Self = @This();
 
-        buf: ?[*]T,
-        capacity: usize,
-        len: usize,
+        items: ?[*]T = null,
+        allocator: *const mem.Allocator = &mem.GlobAlloc.allocator,
+        capacity: usize = 0,
+        len: usize = 0,
 
         drop: mem.Drop = .{
-            .drop_fn = drop
+            .drop_fn = drop_fn
         },
 
         pub fn clear(self: *Self) void {
@@ -20,21 +21,45 @@ pub fn Vec(comptime T: type) type {
 
         pub fn from(slice: []const T) Self {
             var self = Self.with_capacity(slice.len);
-            mem.copy(@ptrCast(*anyopaque, self.buf), slice.ptr, @sizeOf(T) * self.len);
+            self.len = self.capacity;
+            mem.copy(@ptrCast(*anyopaque, self.items.?), slice.ptr, @sizeOf(T) * self.len);
 
             return self;
         }
 
-        pub fn get(self: *Self, idx: usize) ?T {
-            return if (self.buf) |buf| buf[idx] else null;
+        pub fn get(self: *const Self, idx: usize) ?*const T {
+            if (idx >= self.len) {
+                return null;
+            }
+
+            return if (self.items) |items| &items[idx] else null;
+        }
+
+        pub fn get_mut(self: *Self, idx: usize) ?*T {
+            if (idx >= self.len) {
+                return null;
+            }
+
+            return if (self.items) |items| &items[idx] else null;
+        }
+
+        pub fn iter(self: *const Self) Iter(T, A) {
+            return .{ .target = self };
+        }
+
+        pub fn last(self: *const Self) ?*const T {
+            return self.get(self.len - 1);
         }
 
         pub fn new() Self {
-            return .{
-                .buf = null,
-                .capacity = 0,
-                .len = 0
-            };
+            return if (A) |Alloc| .{ .allocator = Alloc } else .{ };
+        }
+
+        pub fn pop(self: *Self) ?T {
+            var item = self.last() orelse return null;
+            self.len -= 1;
+            
+            return item.*;
         }
 
         pub fn push(self: *Self, value: T) void {
@@ -43,18 +68,18 @@ pub fn Vec(comptime T: type) type {
             }
 
             self.len += 1;
-            self.buf.?[self.len - 1] = value;
+            self.items.?[self.len - 1] = value;
         }
 
         pub fn reserve(self: *Self, additional: usize) void {
             self.capacity += additional;
             
-            var ptr = if (self.buf) |buf|
-                GlobAlloc.realloc(buf, @sizeOf(T) * self.capacity)
+            var ptr = if (self.items) |items|
+                self.allocator.realloc(items, @sizeOf(T) * self.capacity)
             else
-                GlobAlloc.alloc(@sizeOf(T) * self.capacity);
+                self.allocator.alloc(@sizeOf(T) * self.capacity);
 
-            self.buf = @ptrCast([*]T, @alignCast(@alignOf(T), ptr catch @panic("Failed allocating")));
+            self.items = @ptrCast([*]T, @alignCast(@alignOf(T), ptr catch @panic("Failed allocating")));
         }
 
         pub fn with_capacity(capacity: usize) Self {
@@ -64,10 +89,32 @@ pub fn Vec(comptime T: type) type {
             return self;
         }
 
-        // Drop implementation
-        pub fn drop(drop_iface: *const mem.Drop) void {
+        // Drop impl
+        fn drop_fn(drop_iface: *const mem.Drop) void {
             const self = @fieldParentPtr(Self, "drop", drop_iface);
-            GlobAlloc.dealloc(@ptrCast(*anyopaque, self.buf));
+            self.allocator.dealloc(@ptrCast(*anyopaque, self.items));
+        }
+    };
+}
+
+pub fn Iter(comptime T: type, comptime A: ?*const mem.Allocator) type {
+    return struct {
+        const Self = @This();
+
+        target: *const Vec(T, A),
+        idx: usize = 0,
+
+        iter: iter.Iterator(T) = .{
+            .next_fn = next_fn
+        },
+
+        // Iterator impl
+        fn next_fn(iter_iface: *iter.Iterator(T)) ?*const T {
+            const self = @fieldParentPtr(Self, "iter", iter_iface);
+            var item = self.target.get(self.idx);
+            self.idx += 1;
+
+            return item;
         }
     };
 }
