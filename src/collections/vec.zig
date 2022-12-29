@@ -6,6 +6,8 @@ const Allocator = mem.allocator.Allocator;
 const GlobAlloc = mem.glob_alloc.GlobAlloc;
 const Drop = mem.drop.Drop;
 
+const std = @import("std");
+
 pub fn Vec(comptime T: type, comptime A: ?*const Allocator) type {
 	return struct {
 		const Self = @This();
@@ -63,13 +65,23 @@ pub fn Vec(comptime T: type, comptime A: ?*const Allocator) type {
 		}
 
 		pub fn insert(self: *Self, idx: usize, elem: T) void {
-			// TODO
+			if (idx >= self.len()) {
+				@panic("Index out of bounds");
+			}
 
-			_ = self;
-			_ = idx;
-			_ = elem;
+			if (self.capacity == self.len()) {
+				self.reserve(1);
+			}
 
-			@panic("Function not implemented yet");
+			self.items.len += 1;
+			
+			var i: usize = self.len() - 1;
+
+			while (i > idx) : (i -= 1) {
+				self.items[i] = self.items[i - 1];
+			}
+
+			self.items[idx] = elem;
 		}
 
 		pub fn is_empty(self: *const Self) bool {
@@ -99,25 +111,27 @@ pub fn Vec(comptime T: type, comptime A: ?*const Allocator) type {
 			return item.*;
 		}
 
-		pub fn push(self: *Self, value: T) void {
-			if (self.capacity == self.len()) {
-				self.reserve(1);
-			}
-
-			self.items.len += 1;
-			self.items[self.len() - 1] = value;
+		pub fn push(self: *Self, elem: T) void {
+			self.insert(self.len(), elem);
 		}
 
 		pub fn remove(self:* Self, idx: usize) T {
-			// TODO
+			if (idx >= self.len()) {
+				@panic("Index out of bounds");
+			}
 
-			_ = self;
-			_ = idx;
+			var elem = self.get(idx).?.*;
 
-			@panic("Function not implemented yet");
+			var i: usize = idx;
+
+			while (i < self.len() - 1) : (i += 1) {
+				self.items[i] = self.items[i + 1];
+			}
+
+			self.items.len -= 1;
+
+			return elem;
 		}
-
-		
 
 		pub fn reserve(self: *Self, additional: usize) void {
 			var old_cap = self.capacity;
