@@ -1,9 +1,9 @@
 pub const Error = error {
-    Failed
+	Failed
 };
 
 pub fn assert(ok: bool) Error!void {
-    if (!ok) {
-        return Error.Failed;
-    }
+	if (!ok) {
+		return Error.Failed;
+	}
 }

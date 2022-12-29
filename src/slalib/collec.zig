@@ -1,1 +1,0 @@
-pub const Vec = @import("collec/vec.zig").Vec;
