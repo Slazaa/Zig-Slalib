@@ -6,10 +6,10 @@ pub const Stdin = struct {
 	const Self = @This();
 
 	pub const read = Read {
-		.read_fn = read_fn
+		.read_fn = readFn
 	};
 
-	fn read_fn(read_iface: *const Read, buf: []u8) Error!usize {
+	fn readFn(read_iface: *const Read, buf: []u8) Error!usize {
 		// TODO: - Read from stdin
 
 		_ = read_iface;
@@ -23,11 +23,11 @@ pub const Stdout = struct {
 	const Self = @This();
 
 	pub const write = Write {
-		.write_fn = write_fn,
-		.flush_fn = flush_fn
+		.write_fn = writeFn,
+		.flush_fn = flushFn
 	};
 
-	fn write_fn(write_iface: *const Write, buf: []const u8) Error!usize {
+	fn writeFn(write_iface: *const Write, buf: []const u8) Error!usize {
 		// TODO: - Write to stdout
 
 		_ = write_iface;
@@ -36,7 +36,7 @@ pub const Stdout = struct {
 		@panic("Function not implemented yet");
 	}
 
-	fn flush_fn(write_iface: *const Write) Error!void {
+	fn flushFn(write_iface: *const Write) Error!void {
 		// TODO: - Flush stdout
 
 		_ = write_iface;

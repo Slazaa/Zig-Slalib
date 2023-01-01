@@ -8,13 +8,13 @@ pub const GlobAlloc = struct {
 	const Self = @This();
 
 	pub const allocator = Allocator {
-		.alloc_fn = alloc_fn,
-		.realloc_fn = realloc_fn,
-		.dealloc_fn = dealloc_fn
+		.alloc_fn = allocFn,
+		.realloc_fn = reallocFn,
+		.dealloc_fn = deallocFn
 	};
 
 	// Allocator impl
-	fn alloc_fn(allocator_iface: *const Allocator, size: usize) Error!*anyopaque {
+	fn allocFn(allocator_iface: *const Allocator, size: usize) Error!*anyopaque {
 		_ = allocator_iface;
 
 		var ptr = c.malloc(size);
@@ -26,7 +26,7 @@ pub const GlobAlloc = struct {
 		return ptr.?;
 	}
 
-	fn realloc_fn(allocator_iface: *const Allocator, ptr: *anyopaque, size: usize) Error!*anyopaque {
+	fn reallocFn(allocator_iface: *const Allocator, ptr: *anyopaque, size: usize) Error!*anyopaque {
 		_ = allocator_iface;
 
 		var new_ptr = c.realloc(ptr, size);
@@ -38,7 +38,7 @@ pub const GlobAlloc = struct {
 		return new_ptr.?;
 	}
 
-	fn dealloc_fn(allocator_iface: *const Allocator, ptr: *anyopaque) void {
+	fn deallocFn(allocator_iface: *const Allocator, ptr: *anyopaque) void {
 		_ = allocator_iface;
 		
 		c.free(ptr);

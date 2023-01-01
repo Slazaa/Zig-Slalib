@@ -1,8 +1,8 @@
-const mem = @import("../mem.zig");
+const memory = @import("../memory.zig");
 const str = @import("../string.zig").str;
 
-const Allocator = mem.allocator.Allocator;
-const Drop = mem.drop.Drop;
+const Allocator = memory.allocator.Allocator;
+const Drop = memory.drop.Drop;
 const Vec = @import("../collections.zig").vec.Vec;
 const Chars = @import("chars.zig").Chars;
 
@@ -13,8 +13,12 @@ pub fn String(comptime A: ?*const Allocator) type {
 		vec: Vec(u8, A),
 
 		drop: Drop = .{
-			.drop_fn = drop_fn
+			.drop_fn = dropFn
 		},
+
+		pub fn asStr(self: *const Self) str {
+			return self.vec.items;
+		}
 
 		pub fn chars(self: *const Self) Chars(A) {
 			return .{ .target = &self.vec };
@@ -29,7 +33,7 @@ pub fn String(comptime A: ?*const Allocator) type {
 		}
 
 		// Drop impl
-		fn drop_fn(drop_iface: *const Drop) void {
+		fn dropFn(drop_iface: *const Drop) void {
 			const self = @fieldParentPtr(Self, "drop", drop_iface);
 			self.vec.drop.drop();
 		}

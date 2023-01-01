@@ -1,9 +1,15 @@
 const iter = @import("../iter.zig");
-const mem = @import("../mem.zig");
-const Vec = @import("../collections.zig").vec.Vec;
-const char = @import("../string.zig").char;
+const memory = @import("../memory.zig");
 
-pub fn Chars(comptime A: ?*const mem.Allocator) type {
+const Allocator = memory.allocator.Allocator;
+const Vec = @import("../collections.zig").vec.Vec;
+const String = @import("string.zig").String;
+const char = @import("../string.zig").char;
+const str = @import("../string.zig").str;
+
+const std = @import("std");
+
+pub fn Chars(comptime A: ?*const Allocator) type {
 	return struct {
 		const Self = @This();
 
@@ -11,23 +17,27 @@ pub fn Chars(comptime A: ?*const mem.Allocator) type {
 		idx: usize = 0,
 
 		iter: iter.Iterator(char) = . {
-			.next_fn = next_fn
+			.next_fn = nextFn
 		},
 
-		fn utf8_size(header_byte: u8) u3 {
+		fn utf8Size(header_byte: u8) u3 {
 			const byte_template = 0b10000000;
 			var header_byte_val = header_byte;
-			var size: u3 = 1;
+			var size: u3 = 0;
 
 			while (header_byte_val & byte_template == byte_template) {
 				size += 1;
 				header_byte_val <<= 1;
 			}
 
+			if (size == 0) {
+				return 1;
+			}
+
 			return size;
 		}
 
-		fn utf8_to_char(bytes: []const u8) ?char {
+		fn utf8ToChar(bytes: []const u8) ?char {
 			if (bytes.len == 0) {
 				return null;
 			}
@@ -67,16 +77,29 @@ pub fn Chars(comptime A: ?*const mem.Allocator) type {
 			return res;
 		}
 
+		pub fn asStr(self: *const Self) str {
+			return self.target.items;
+		}
+
+		pub fn get(self: *const Self, idx: usize) ?char {
+			// TODO
+
+			_ = self;
+			_ = idx;
+
+			@panic("Function not implemented yet");
+		}
+
 		// Iterator impl
-		pub fn next_fn(iter_iface: *iter.Iterator(char)) ?char {
+		pub fn nextFn(iter_iface: *iter.Iterator(char)) ?char {
 			const self = @fieldParentPtr(Self, "iter", iter_iface);
 			const byte = self.target.get(self.idx) orelse return null;
-			const char_size = Self.utf8_size(byte.*);
+			const char_size = Self.utf8Size(byte.*);
 
 			const curr_idx = self.idx;
 			self.idx += char_size;
 
-			return Self.utf8_to_char(self.target.get_slice(curr_idx, curr_idx + char_size) orelse @panic("Invalid string"));
+			return Self.utf8ToChar(self.target.getSlice(curr_idx, curr_idx + char_size) orelse return null);
 		}
 	};
 }
