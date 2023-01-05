@@ -2,7 +2,7 @@
 A anternative for the standard library heavily inspired from the Rust standard library.
 
 ## Goals
-- [ ] Clone
+- [x] Clone
 - [ ] Collections
 	- [ ] Queue
 	- [ ] HashMap
