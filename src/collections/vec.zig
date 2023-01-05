@@ -1,12 +1,11 @@
-const memory = @import("../memory.zig");
-const iter = @import("../iter.zig");
 const assert = @import("../assert.zig");
+const memory = @import("../memory.zig");
 
+const Clone = @import("../clone.zig").Clone;
+const Iterator = @import("../iterator.zig").Iterator;
 const Allocator = memory.allocator.Allocator;
 const GlobAlloc = memory.glob_alloc.GlobAlloc;
 const Drop = memory.drop.Drop;
-
-const std = @import("std");
 
 pub fn Vec(comptime T: type, comptime A: ?*const Allocator) type {
 	return struct {
@@ -16,9 +15,17 @@ pub fn Vec(comptime T: type, comptime A: ?*const Allocator) type {
 		allocator: *const Allocator = &GlobAlloc.allocator,
 		capacity: usize = 0,
 
+		clone: Clone(Self) = .{
+			.clone_fn = cloneFn
+		},
+
 		drop: Drop = .{
 			.drop_fn = dropFn
 		},
+
+		pub fn capacity(self: *const Self) usize {
+			return self.capacity;
+		}
 
 		pub fn clear(self: *Self) void {
 			self.items.len = 0;
@@ -110,7 +117,6 @@ pub fn Vec(comptime T: type, comptime A: ?*const Allocator) type {
 			}
 
 			var elem = self.get(idx).?.*;
-
 			var i: usize = idx;
 
 			while (i < self.len() - 1) : (i += 1) {
@@ -134,11 +140,17 @@ pub fn Vec(comptime T: type, comptime A: ?*const Allocator) type {
 			self.items.ptr = @ptrCast([*]T, @alignCast(@alignOf(T), new_mem catch @panic("Failed allocating")));
 		}
 
-		pub fn withCapacity(capacity: usize) Self {
+		pub fn withCapacity(cap: usize) Self {
 			var self = Self.new();
-			self.reserve(capacity);
+			self.reserve(cap);
 
 			return self;
+		}
+
+		// Clone impl
+		fn cloneFn(clone_iface: *const Clone(Self)) Self {
+			const self = @fieldParentPtr(Self, "clone", clone_iface);
+			return Vec(T, A).from(self.items);
 		}
 
 		// Drop impl
@@ -156,12 +168,12 @@ pub fn Iter(comptime T: type, comptime I: type, comptime A: ?*const Allocator) t
 		target: *const Vec(T, A),
 		idx: usize = 0,
 
-		iter: iter.Iterator(I) = .{
+		iter: Iterator(I) = .{
 			.next_fn = nextFn
 		},
 
 		// Iterator impl
-		fn nextFn(iter_iface: *iter.Iterator(I)) ?I {
+		fn nextFn(iter_iface: *Iterator(I)) ?I {
 			const self = @fieldParentPtr(Self, "iter", iter_iface);
 			var item = self.target.get(self.idx);
 			self.idx += 1;

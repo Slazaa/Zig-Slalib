@@ -2,14 +2,17 @@
 A anternative for the standard library heavily inspired from the Rust standard library.
 
 ## Goals
+- [ ] Clone
 - [ ] Collections
 	- [ ] Queue
 	- [ ] HashMap
 	- [x] Vec
 - [ ] Format
+- [x] Iterator
 - [ ] I/O
 	- [ ] File
 	- [ ] Stdio
+- [ ] Math
 - [x] Memory
 	- [x] Allocator
 	- [x] Drop
@@ -18,7 +21,7 @@ A anternative for the standard library heavily inspired from the Rust standard l
 	- [ ] Tcp
 	- [ ] Udp
 - [ ] String
-	- [ ] Chars
+	- [x] Chars
 	- [ ] String
 - [ ] Thread
 - [ ] Time
