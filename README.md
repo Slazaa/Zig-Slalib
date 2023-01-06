@@ -8,7 +8,9 @@ A anternative for the standard library heavily inspired from the Rust standard l
 	- [ ] HashMap
 	- [x] Vec
 - [ ] Format
-- [x] Iterator
+- [ ] Iter
+	- [ ] Iterator
+	- [x] FromIterator
 - [ ] I/O
 	- [ ] File
 	- [ ] Stdio
@@ -20,8 +22,8 @@ A anternative for the standard library heavily inspired from the Rust standard l
 - [ ] Net
 	- [ ] Tcp
 	- [ ] Udp
-- [ ] String
+- [x] String
 	- [x] Chars
-	- [ ] String
+	- [x] String
 - [ ] Thread
 - [ ] Time

@@ -1,15 +1,23 @@
 const assert = @import("../assert.zig");
+const iter = @import("../iter.zig");
 const memory = @import("../memory.zig");
 
 const Clone = @import("../clone.zig").Clone;
-const Iterator = @import("../iterator.zig").Iterator;
+const FromIterator = iter.from_iterator.FromIterator;
+const Iterator = iter.iterator.Iterator;
 const Allocator = memory.allocator.Allocator;
 const GlobAlloc = memory.glob_alloc.GlobAlloc;
 const Drop = memory.drop.Drop;
 
+const std = @import("std");
+
 pub fn Vec(comptime T: type, comptime A: ?*const Allocator) type {
 	return struct {
 		const Self = @This();
+
+		pub const from_iter: FromIterator(Iter(Self, *const T), Self) = .{
+			.from_iter_fn = fromIterFn
+		};
 
 		items: []T = &[_]T{},
 		allocator: *const Allocator = &GlobAlloc.allocator,
@@ -55,16 +63,16 @@ pub fn Vec(comptime T: type, comptime A: ?*const Allocator) type {
 			return if (!self.isEmpty()) &self.items[idx] else null;
 		}
 
-		pub fn getSlice(self: *const Self, start_idx: usize, end_idx: usize) ?[]const T {
-			if (start_idx > end_idx or end_idx > self.len()) {
+		pub fn getSlice(self: *const Self, start: usize, end: usize) ?[]const T {
+			if (start > end or end > self.len()) {
 				return null;
 			}
 
-			return self.items[start_idx..end_idx];
+			return self.items[start..end];
 		}
 
 		pub fn insert(self: *Self, idx: usize, elem: T) void {
-			if (idx >= self.len()) {
+			if (idx > self.len()) {
 				@panic("Index out of bounds");
 			}
 
@@ -87,7 +95,7 @@ pub fn Vec(comptime T: type, comptime A: ?*const Allocator) type {
 			return self.len() == 0;
 		}
 
-		pub fn iter(self: *const Self) Iter(T, *const T, A) {
+		pub fn iter(self: *const Self) Iter(Self, *const T) {
 			return .{ .target = self };
 		}
 
@@ -158,23 +166,39 @@ pub fn Vec(comptime T: type, comptime A: ?*const Allocator) type {
 			const self = @fieldParentPtr(Self, "drop", drop_iface);
 			self.allocator.dealloc(@ptrCast(*anyopaque, self.items));
 		}
+
+		// FromIterator impl
+		fn fromIterFn(from_iter_iface: *const FromIterator(Iter(Self, *const T), Self), i: Iter(Self, *const T)) Self {
+			_ = from_iter_iface;
+
+			var res = Self.new();
+			var i_mut = i;
+
+			while (i_mut.iter.next()) |item| {
+				res.push(item.*);
+			}
+
+			return res;
+		}
 	};
 }
 
-pub fn Iter(comptime T: type, comptime I: type, comptime A: ?*const Allocator) type {
+pub fn Iter(comptime B: type, comptime I: type) type {
 	return struct {
 		const Self = @This();
 
-		target: *const Vec(T, A),
+		target: *const B,
 		idx: usize = 0,
 
-		iter: Iterator(I) = .{
-			.next_fn = nextFn
+		iter: Iterator(B, I) = .{
+			.next_fn = nextFn,
+			.map_fn = null
 		},
 
 		// Iterator impl
-		fn nextFn(iter_iface: *Iterator(I)) ?I {
+		fn nextFn(iter_iface: *Iterator(B, I)) ?I {
 			const self = @fieldParentPtr(Self, "iter", iter_iface);
+
 			var item = self.target.get(self.idx);
 			self.idx += 1;
 

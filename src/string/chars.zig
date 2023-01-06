@@ -4,7 +4,7 @@ const char = @import("../string.zig").char;
 const str = @import("../string.zig").str;
 
 const Clone = @import("../clone.zig").Clone;
-const Iterator = @import("../iterator.zig").Iterator;
+const Iterator = @import("../iter.zig").iterator.Iterator;
 const Allocator = memory.allocator.Allocator;
 const Vec = @import("../collections.zig").vec.Vec;
 const String = @import("string.zig").String;
@@ -72,7 +72,7 @@ pub fn Chars(comptime A: ?*const Allocator) type {
 		}
 
 		// Iterator impl
-		fn nextFn(iter_iface: *Iterator(char)) ?char {
+		fn nextFn(iter_iface: *Iterator(Self, char)) ?char {
 			const self = @fieldParentPtr(Self, "iter", iter_iface);
 			const byte = self.target.get(self.idx) orelse return null;
 			const char_size = utf8Size(byte.*);
@@ -103,12 +103,10 @@ pub fn utf8Size(header_byte: u8) u3 {
 }
 
 pub fn decodeUtf8(bytes: []const u8) ?char {
-	if (bytes.len == 0) {
-		return null;
-	}
-
-	if (bytes.len == 1) {
-		return bytes[0];
+	switch (bytes.len) {
+		0 => return null,
+		1 => return bytes[0],
+		else => { }
 	}
 
 	var res: char = 0;
@@ -134,24 +132,20 @@ pub fn decodeUtf8(bytes: []const u8) ?char {
 
 pub fn encodeUtf8(dst: []u8, ch: char) void {
 	var ch_value = ch;
-	var char_size: u5 = 0;
+	var zero_count: u5 = 0;
 
-	{
-		var zero_count: u5 = 0;
-
-		while (ch_value & 0x10_00_00 == 0) : (zero_count += 1) {
-			ch_value <<= 1;
-		}
-
-		char_size = switch (21 - zero_count) {
-			0       => return,
-			1...7   => 1,
-			8...11  => 2,
-			12...16 => 3,
-			17...21 => 4,
-			else => @panic("Invalid char size")
-		};
+	while (ch_value & 0x10_00_00 == 0) : (zero_count += 1) {
+		ch_value <<= 1;
 	}
+
+	var char_size: u5 = switch (21 - zero_count) {
+		0       => return,
+		1...7   => 1,
+		8...11  => 2,
+		12...16 => 3,
+		17...21 => 4,
+		else => @panic("Invalid char size")
+	};
 
 	if (char_size == 1) {
 		dst[0] = @truncate(u8, ch);
