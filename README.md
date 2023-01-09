@@ -5,7 +5,7 @@ A anternative for the standard library heavily inspired from the Rust standard l
 - [x] Clone
 - [ ] Collections
 	- [ ] Queue
-	- [ ] HashMap
+	- [ ] Map
 	- [x] Vec
 - [ ] Format
 - [x] Iter
@@ -19,7 +19,7 @@ A anternative for the standard library heavily inspired from the Rust standard l
 	- [x] Allocator
 	- [x] Drop
 	- [x] GlobAlloc
-- [ ] Net
+- [ ] Network
 	- [ ] Tcp
 	- [ ] Udp
 - [x] String
