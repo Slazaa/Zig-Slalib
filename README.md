@@ -8,8 +8,8 @@ A anternative for the standard library heavily inspired from the Rust standard l
 	- [ ] HashMap
 	- [x] Vec
 - [ ] Format
-- [ ] Iter
-	- [ ] Iterator
+- [x] Iter
+	- [x] Iterator
 	- [x] FromIterator
 - [ ] I/O
 	- [ ] File

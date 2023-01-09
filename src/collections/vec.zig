@@ -11,7 +11,7 @@ const Drop = memory.drop.Drop;
 
 const std = @import("std");
 
-pub fn Vec(comptime T: type, comptime A: ?*const Allocator) type {
+pub fn Vec(comptime T: type, comptime A: ?Allocator) type {
 	return struct {
 		const Self = @This();
 
@@ -20,7 +20,7 @@ pub fn Vec(comptime T: type, comptime A: ?*const Allocator) type {
 		};
 
 		items: []T = &[_]T{},
-		allocator: *const Allocator = &GlobAlloc.allocator,
+		allocator: Allocator = GlobAlloc.allocator,
 		capacity: usize = 0,
 
 		clone: Clone(Self) = .{
@@ -183,20 +183,19 @@ pub fn Vec(comptime T: type, comptime A: ?*const Allocator) type {
 	};
 }
 
-pub fn Iter(comptime B: type, comptime I: type) type {
+pub fn Iter(comptime B: type, comptime T: type) type {
 	return struct {
 		const Self = @This();
 
 		target: *const B,
 		idx: usize = 0,
 
-		iter: Iterator(B, I) = .{
-			.next_fn = nextFn,
-			.map_fn = null
+		iter: Iterator(T) = .{
+			.next_fn = nextFn
 		},
 
 		// Iterator impl
-		fn nextFn(iter_iface: *Iterator(B, I)) ?I {
+		fn nextFn(iter_iface: *Iterator(T)) ?T {
 			const self = @fieldParentPtr(Self, "iter", iter_iface);
 
 			var item = self.target.get(self.idx);

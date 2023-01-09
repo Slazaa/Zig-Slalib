@@ -12,7 +12,7 @@ const Chars = chars_.Chars;
 
 const std = @import("std");
 
-pub fn String(comptime A: ?*const Allocator) type {
+pub fn String(comptime A: ?Allocator) type {
 	return struct {
 		const Self = @This();
 

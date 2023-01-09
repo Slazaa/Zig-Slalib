@@ -1,5 +1,3 @@
-const Iterator = @import("iterator.zig").Iterator;
-
 pub fn FromIterator(comptime I: type, comptime T: type) type {
 	return struct {
 		const Self = @This();

@@ -11,7 +11,7 @@ const String = @import("string.zig").String;
 
 const std = @import("std");
 
-pub fn Chars(comptime A: ?*const Allocator) type {
+pub fn Chars(comptime A: ?Allocator) type {
 	return struct {
 		const Self = @This();
 
