@@ -1,4 +1,4 @@
-const Error = @import("err.zig").Error;
+const Error = @import("../memory.zig").Error;
 const Allocator = @import("allocator.zig").Allocator;
 const c = @cImport({
 	@cInclude("stdlib.h");

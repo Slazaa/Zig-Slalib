@@ -3,87 +3,11 @@ const memory = @import("../memory.zig");
 const char = @import("../string.zig").char;
 const str = @import("../string.zig").str;
 
-const Clone = @import("../clone.zig").Clone;
-const Iterator = @import("../iter.zig").iterator.Iterator;
 const Allocator = memory.allocator.Allocator;
 const Vec = @import("../collections.zig").vec.Vec;
 const String = @import("string.zig").String;
 
 const std = @import("std");
-
-pub fn Chars(comptime A: ?Allocator) type {
-	return struct {
-		const Self = @This();
-
-		target: *const Vec(u8, A),
-		idx: usize = 0,
-
-		clone: Clone(Self) = .{
-			.clone_fn = cloneFn
-		},
-
-		iter: Iterator(char) = .{
-			.next_fn = nextFn
-		},
-
-		pub fn asStr(self: *const Self) str {
-			return self.target.items;
-		}
-
-		pub fn count(self: *Self) usize {
-			var i: usize = 0;
-
-			while (self.iter.next()) |_| {
-				i += 1;
-			}
-
-			return i;
-		}
-
-		pub fn get(self: *Self, idx: usize) ?char {
-			var i: usize = 0;
-
-			while (self.iter.next()) |ch| {
-				if (i == idx) {
-					return ch;
-				}
-
-				i += 1;
-			}
-		}
-
-		pub fn last(self: *Self) ?char {
-			var res = null;
-
-			while (self.iter.next()) |ch| {
-				res = ch;
-			}
-
-			return res;
-		}
-
-		// Clone impl
-		fn cloneFn(clone_iface: *const Clone(Self)) Self {
-			const self = @fieldParentPtr(Self, "clone", clone_iface);
-			return .{
-				.target = self.target,
-				.idx = self.idx
-			};
-		}
-
-		// Iterator impl
-		fn nextFn(iter_iface: *Iterator(Self, char)) ?char {
-			const self = @fieldParentPtr(Self, "iter", iter_iface);
-			const byte = self.target.get(self.idx) orelse return null;
-			const char_size = utf8Size(byte.*);
-
-			const curr_idx = self.idx;
-			self.idx += char_size;
-
-			return decodeUtf8(self.target.getSlice(curr_idx, curr_idx + char_size) orelse return null);
-		}
-	};
-}
 
 pub fn utf8Size(header_byte: u8) u3 {
 	const byte_template = 0b1000_0000;
@@ -166,5 +90,60 @@ pub fn encodeUtf8(dst: []u8, ch: char) void {
 		3 => 0b1110_0000 | (@truncate(u8, ch_value) & 0b0000_1111),
 		4 => 0b1111_0000 | (@truncate(u8, ch_value) & 0b0000_0111),
 		else => @panic("Invalid char index")
+	};
+}
+
+pub fn Chars(comptime A: ?Allocator) type {
+	return struct {
+		const Self = @This();
+
+		target: *const Vec(u8, A),
+		idx: usize = 0,
+
+		pub fn asStr(self: *const Self) str {
+			return self.target.items;
+		}
+
+		pub fn count(self: *Self) usize {
+			var i: usize = 0;
+
+			while (self.iter.next()) |_| {
+				i += 1;
+			}
+
+			return i;
+		}
+
+		pub fn get(self: *Self, idx: usize) ?char {
+			var i: usize = 0;
+
+			while (self.iter.next()) |ch| {
+				if (i == idx) {
+					return ch;
+				}
+
+				i += 1;
+			}
+		}
+
+		pub fn last(self: *Self) ?char {
+			var res = null;
+
+			while (self.iter.next()) |ch| {
+				res = ch;
+			}
+
+			return res;
+		}
+
+		pub fn next(self: *Self) ?char {
+			const byte = self.target.get(self.idx) orelse return null;
+			const char_size = utf8Size(byte.*);
+
+			const curr_idx = self.idx;
+			self.idx += char_size;
+
+			return decodeUtf8(self.target.getSlice(curr_idx, curr_idx + char_size) orelse return null);
+		}
 	};
 }

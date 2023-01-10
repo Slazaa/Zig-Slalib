@@ -1,13 +1,8 @@
 const assert = @import("../assert.zig");
-const iter = @import("../iter.zig");
 const memory = @import("../memory.zig");
 
-const Clone = @import("../clone.zig").Clone;
-const FromIterator = iter.from_iterator.FromIterator;
-const Iterator = iter.iterator.Iterator;
 const Allocator = memory.allocator.Allocator;
 const GlobAlloc = memory.glob_alloc.GlobAlloc;
-const Drop = memory.drop.Drop;
 
 const std = @import("std");
 
@@ -15,21 +10,9 @@ pub fn Vec(comptime T: type, comptime A: ?Allocator) type {
 	return struct {
 		const Self = @This();
 
-		pub const from_iter: FromIterator(Iter(Self, *const T), Self) = .{
-			.from_iter_fn = fromIterFn
-		};
-
 		items: []T = &[_]T{},
 		allocator: Allocator = GlobAlloc.allocator,
 		capacity: usize = 0,
-
-		clone: Clone(Self) = .{
-			.clone_fn = cloneFn
-		},
-
-		drop: Drop = .{
-			.drop_fn = dropFn
-		},
 
 		pub fn capacity(self: *const Self) usize {
 			return self.capacity;
@@ -37,6 +20,10 @@ pub fn Vec(comptime T: type, comptime A: ?Allocator) type {
 
 		pub fn clear(self: *Self) void {
 			self.items.len = 0;
+		}
+
+		pub fn deinit(self: *Self) void {
+			self.allocator.dealloc(@ptrCast(*anyopaque, self.items));
 		}
 
 		pub fn from(slice: []const T) Self {
@@ -71,6 +58,10 @@ pub fn Vec(comptime T: type, comptime A: ?Allocator) type {
 			return self.items[start..end];
 		}
 
+		pub fn init() Self {
+			return if (A) |Alloc| .{ .allocator = Alloc } else .{ };
+		}
+
 		pub fn insert(self: *Self, idx: usize, elem: T) void {
 			if (idx > self.len()) {
 				@panic("Index out of bounds");
@@ -95,20 +86,12 @@ pub fn Vec(comptime T: type, comptime A: ?Allocator) type {
 			return self.len() == 0;
 		}
 
-		pub fn iter(self: *const Self) Iter(Self, *const T) {
-			return .{ .target = self };
-		}
-
 		pub fn last(self: *const Self) ?*const T {
 			return self.get(self.len() - 1);
 		}
 
 		pub fn len(self: *const Self) usize {
 			return self.items.len;
-		}
-
-		pub fn new() Self {
-			return if (A) |Alloc| .{ .allocator = Alloc } else .{ };
 		}
 
 		pub fn pop(self: *Self) ?T {
@@ -149,59 +132,10 @@ pub fn Vec(comptime T: type, comptime A: ?Allocator) type {
 		}
 
 		pub fn withCapacity(cap: usize) Self {
-			var self = Self.new();
+			var self = Self.init();
 			self.reserve(cap);
 
 			return self;
-		}
-
-		// Clone impl
-		fn cloneFn(clone_iface: *const Clone(Self)) Self {
-			const self = @fieldParentPtr(Self, "clone", clone_iface);
-			return Vec(T, A).from(self.items);
-		}
-
-		// Drop impl
-		fn dropFn(drop_iface: *const Drop) void {
-			const self = @fieldParentPtr(Self, "drop", drop_iface);
-			self.allocator.dealloc(@ptrCast(*anyopaque, self.items));
-		}
-
-		// FromIterator impl
-		fn fromIterFn(from_iter_iface: *const FromIterator(Iter(Self, *const T), Self), i: Iter(Self, *const T)) Self {
-			_ = from_iter_iface;
-
-			var res = Self.new();
-			var i_mut = i;
-
-			while (i_mut.iter.next()) |item| {
-				res.push(item.*);
-			}
-
-			return res;
-		}
-	};
-}
-
-pub fn Iter(comptime B: type, comptime T: type) type {
-	return struct {
-		const Self = @This();
-
-		target: *const B,
-		idx: usize = 0,
-
-		iter: Iterator(T) = .{
-			.next_fn = nextFn
-		},
-
-		// Iterator impl
-		fn nextFn(iter_iface: *Iterator(T)) ?T {
-			const self = @fieldParentPtr(Self, "iter", iter_iface);
-
-			var item = self.target.get(self.idx);
-			self.idx += 1;
-
-			return item;
 		}
 	};
 }

@@ -1,4 +1,4 @@
-const Error = @import("err.zig").Error;
+const Error = @import("../io.zig").Error;
 const Read = @import("read.zig").Read;
 const Write = @import("write.zig").Write;
 

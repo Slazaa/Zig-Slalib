@@ -1,4 +1,4 @@
-const Error = @import("err.zig").Error;
+const Error = @import("../io.zig").Error;
 
 pub const Write = struct {
 	const Self = @This();

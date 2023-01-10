@@ -1,4 +1,4 @@
-const sla = @import("../sla.zig");
+const sla = @import("../slalib.zig");
 const str = sla.str;
 
 pub const TcpListener = struct {

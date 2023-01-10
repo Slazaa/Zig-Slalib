@@ -1,4 +1,4 @@
-const Error = @import("err.zig").Error;
+const Error = @import("../memory.zig").Error;
 
 pub const Allocator = struct {
 	const Self = @This();

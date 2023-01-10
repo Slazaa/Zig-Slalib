@@ -4,9 +4,7 @@ const chars_ = @import("chars.zig");
 const str = @import("../string.zig").str;
 const char = @import("../string.zig").char;
 
-const Clone = @import("../clone.zig").Clone;
 const Allocator = memory.allocator.Allocator;
-const Drop = memory.drop.Drop;
 const Vec = @import("../collections.zig").vec.Vec;
 const Chars = chars_.Chars;
 
@@ -17,14 +15,6 @@ pub fn String(comptime A: ?Allocator) type {
 		const Self = @This();
 
 		vec: Vec(u8, A),
-
-		clone: Clone(Self) = .{
-			.clone_fn = cloneFn
-		},
-
-		drop: Drop = .{
-			.drop_fn = dropFn
-		},
 
 		pub fn asStr(self: *const Self) str {
 			return self.vec.items;
@@ -38,9 +28,9 @@ pub fn String(comptime A: ?Allocator) type {
 			self.vec.clear();
 		}
 
-		// pub fn find(self: *const Self, string: str) ?usize {
-			
-		// }
+		pub fn deinit(self: *Self) void {
+			self.vec.deinit();
+		}
 
 		pub fn from(string: str) Self {
 			return .{ .vec = Vec(u8, A).from(string) };
@@ -80,6 +70,10 @@ pub fn String(comptime A: ?Allocator) type {
 
 				vec_idx += vec_char_size;
 			}
+		}
+
+		pub fn init() Self {
+			return .{ .vec = Vec(u8, A).new() };
 		}
 
 		pub fn insert(self: *Self, idx: usize, ch: char) void {
@@ -129,10 +123,6 @@ pub fn String(comptime A: ?Allocator) type {
 			return chrs.count();
 		}
 
-		pub fn new() Self {
-			return .{ .vec = Vec(u8, A).new() };
-		}
-
 		pub fn pop(self: *Self) char {
 			return self.remove(self.len() - 1);
 		}
@@ -171,24 +161,8 @@ pub fn String(comptime A: ?Allocator) type {
 			}
 		}
 
-		// pub fn replace(self: *Self, old_str: str, new_str: str) Self {
-
-		// }
-
 		pub fn withCapacity(cap: usize) Self {
 			return .{ .vec = Vec(u8, A).withCapacity(cap) };
-		}
-
-		// Clone impl
-		fn cloneFn(clone_iface: *const Clone(Self)) Self {
-			const self = @fieldParentPtr(Self, "clone", clone_iface);
-			return Self.from(self.asStr());
-		}
-
-		// Drop impl
-		fn dropFn(drop_iface: *const Drop) void {
-			const self = @fieldParentPtr(Self, "drop", drop_iface);
-			self.vec.drop.drop();
 		}
 	};
 }
