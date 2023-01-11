@@ -18,7 +18,5 @@ A anternative for the standard library heavily inspired from the Rust standard l
 	- [ ] Tcp
 	- [ ] Udp
 - [x] String
-	- [x] Chars
-	- [x] String
 - [ ] Thread
 - [ ] Time

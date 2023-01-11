@@ -1,4 +1,3 @@
-const assert = @import("../assert.zig");
 const memory = @import("../memory.zig");
 
 const Allocator = memory.allocator.Allocator;
@@ -20,6 +19,10 @@ pub fn Vec(comptime T: type, comptime A: ?Allocator) type {
 
 		pub fn clear(self: *Self) void {
 			self.items.len = 0;
+		}
+
+		pub fn copy(self: *const Self) Self {
+			return Self.from(self.items);
 		}
 
 		pub fn deinit(self: *Self) void {
@@ -59,7 +62,12 @@ pub fn Vec(comptime T: type, comptime A: ?Allocator) type {
 		}
 
 		pub fn init() Self {
-			return if (A) |Alloc| .{ .allocator = Alloc } else .{ };
+			return if (A) |Alloc|
+				.{
+					.allocator = Alloc
+				}
+			else
+				.{ };
 		}
 
 		pub fn insert(self: *Self, idx: usize, elem: T) void {
