@@ -6,11 +6,6 @@ const str = string.str;
 const Allocator = memory.allocator.Allocator;
 const String = string.String;
 
-pub fn format(comptime A: ?Allocator, comptime fmt: str, args: anytype) String(A) {
-	var res = String(A).new();
+// pub fn format(comptime A: ?Allocator, dst: String(A), fmt: str, args: anytype) void {
 	
-	_ = fmt;
-	_ = args;
-
-	return res;
-}
+// }

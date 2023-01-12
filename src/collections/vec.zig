@@ -5,17 +5,13 @@ const GlobAlloc = memory.glob_alloc.GlobAlloc;
 
 const std = @import("std");
 
-pub fn Vec(comptime T: type, comptime A: ?Allocator) type {
+pub fn Vec(comptime T: type) type {
 	return struct {
 		const Self = @This();
 
 		items: []T = &[_]T{},
 		allocator: Allocator = GlobAlloc.allocator,
 		capacity: usize = 0,
-
-		pub fn capacity(self: *const Self) usize {
-			return self.capacity;
-		}
 
 		pub fn clear(self: *Self) void {
 			self.items.len = 0;
@@ -29,8 +25,8 @@ pub fn Vec(comptime T: type, comptime A: ?Allocator) type {
 			self.allocator.dealloc(@ptrCast(*anyopaque, self.items));
 		}
 
-		pub fn from(slice: []const T) Self {
-			var self = Self.withCapacity(slice.len);
+		pub fn from(allocator: ?Allocator, slice: []const T) memory.allocator.Error!Self {
+			var self = try Self.withCapacity(allocator, slice.len);
 			self.items.len = self.capacity;
 			memory.copy(@ptrCast(*anyopaque, self.items.ptr), slice.ptr, @sizeOf(T) * self.len());
 
@@ -61,22 +57,22 @@ pub fn Vec(comptime T: type, comptime A: ?Allocator) type {
 			return self.items[start..end];
 		}
 
-		pub fn init() Self {
-			return if (A) |Alloc|
+		pub fn init(allocator: ?Allocator) Self {
+			return if (allocator) |alloc|
 				.{
-					.allocator = Alloc
+					.allocator = alloc
 				}
 			else
 				.{ };
 		}
 
-		pub fn insert(self: *Self, idx: usize, elem: T) void {
+		pub fn insert(self: *Self, idx: usize, elem: T) memory.allocator.Error!void {
 			if (idx > self.len()) {
 				@panic("Index out of bounds");
 			}
 
 			if (self.capacity == self.len()) {
-				self.reserve(1);
+				try self.reserve(1);
 			}
 
 			self.items.len += 1;
@@ -102,15 +98,15 @@ pub fn Vec(comptime T: type, comptime A: ?Allocator) type {
 			return self.items.len;
 		}
 
-		pub fn pop(self: *Self) ?T {
-			return self.remove(self.len() - 1);
+		pub fn pop(self: *Self) memory.allocator.Error!?T {
+			return try self.remove(self.len() - 1);
 		}
 
-		pub fn push(self: *Self, elem: T) void {
-			self.insert(self.len(), elem);
+		pub fn push(self: *Self, elem: T) memory.allocator.Error!void {
+			try self.insert(self.len(), elem);
 		}
 
-		pub fn remove(self:* Self, idx: usize) T {
+		pub fn remove(self:* Self, idx: usize) memory.allocator.Error!T {
 			if (idx >= self.len()) {
 				@panic("Index out of bounds");
 			}
@@ -127,7 +123,7 @@ pub fn Vec(comptime T: type, comptime A: ?Allocator) type {
 			return elem;
 		}
 
-		pub fn reserve(self: *Self, additional: usize) void {
+		pub fn reserve(self: *Self, additional: usize) memory.allocator.Error!void {
 			var old_cap = self.capacity;
 			self.capacity += additional;
 			
@@ -136,12 +132,12 @@ pub fn Vec(comptime T: type, comptime A: ?Allocator) type {
 			else
 				self.allocator.alloc(@sizeOf(T) * self.capacity);
 
-			self.items.ptr = @ptrCast([*]T, @alignCast(@alignOf(T), new_mem catch @panic("Failed allocating")));
+			self.items.ptr = @ptrCast([*]T, @alignCast(@alignOf(T), try new_mem));
 		}
 
-		pub fn withCapacity(cap: usize) Self {
-			var self = Self.init();
-			self.reserve(cap);
+		pub fn withCapacity(allocator: ?Allocator, cap: usize) memory.allocator.Error!Self {
+			var self = Self.init(allocator);
+			try self.reserve(cap);
 
 			return self;
 		}
