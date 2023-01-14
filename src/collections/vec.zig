@@ -22,7 +22,11 @@ pub fn Vec(comptime T: type) type {
 		}
 
 		pub fn deinit(self: *Self) void {
-			self.allocator.dealloc(@ptrCast(*anyopaque, self.items));
+			if (self.capacity == 0) {
+				return;
+			}
+
+			self.allocator.dealloc(self.items.ptr);
 		}
 
 		pub fn from(allocator: ?Allocator, slice: []const T) memory.allocator.Error!Self {

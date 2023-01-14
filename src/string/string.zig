@@ -22,6 +22,7 @@ pub const String = struct {
 
 	pub fn clear(self: *Self) void {
 		self.vec.clear();
+		self.len = 0;
 	}
 
 	pub fn countStr(self: *Self, target: str) usize {
@@ -61,7 +62,7 @@ pub const String = struct {
 		var char_utf8 = [_]u8{ 0 } ** 4;
 		string_.encodeUtf8(&char_utf8, ch);
 
-		try self.insertStr(idx, &char_utf8);
+		try self.insertStr(idx, char_utf8[0..string_.utf8Size(char_utf8[0])]);
 	}
 
 	pub fn insertStr(self: *Self, idx: usize, string: str) memory.allocator.Error!void {
@@ -112,6 +113,10 @@ pub const String = struct {
 
 	pub fn pushStr(self: *Self, string: str) memory.allocator.Error!void {
 		try self.insertStr(self.len, string);
+	}
+	
+	pub fn pushStrFront(self: *Self, string: str) memory.allocator.Error!void {
+		try self.insertStr(0, string);
 	}
 
 	pub fn remove(self: *Self, idx: usize) memory.allocator.Error!char {

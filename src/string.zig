@@ -165,7 +165,14 @@ pub fn intToString(dest: *String, num: usize, base: usize) memory.allocator.Erro
 	var num_val = num; 
 
 	while (num_val != 0) {
-		try dest.pushFront(@truncate(char, num_val % base) + 48);
+		var ch = @truncate(char, num_val % base);
+		ch += switch (ch) {
+			0...9 => 48,
+			10...35 => 65 - 10,
+			else => 0
+		};
+
+		try dest.pushFront(ch);
 		num_val /= base;
 	}
 }
@@ -179,8 +186,44 @@ pub fn last(self: str) ?char {
 }
 
 pub fn toString(dest: *String, target: anytype) memory.allocator.Error!void {
-	switch (@typeInfo(@TypeOf(target))) {
-		.ComptimeInt => try intToString(dest, target, 10),
-		else => @panic("Invalid type, found " ++ @typeName(@TypeOf(target)))
+	const TargetType = @TypeOf(target);
+	const type_info = @typeInfo(TargetType);
+
+	switch (type_info) {
+		.Array => {
+			try dest.push('[');
+
+			var res = String.init(null);
+			defer res.deinit();
+
+			for (target) |item| {
+				res.clear();
+
+				try dest.push(' ');
+				try toString(&res, item);
+
+				try dest.pushStr(res.asStr());
+				try dest.push(',');
+			}
+
+			_ = try dest.pop();
+			try dest.pushStr(" ]");
+		},
+		.Bool => try dest.pushStr(if (target) "true" else "false"),
+		.ComptimeInt, .Int => try intToString(dest, @as(usize, target), 10),
+		.Null => try dest.pushStr("null"),
+		.Pointer => {
+			try intToString(dest, @ptrToInt(target), 16);
+			try dest.pushStrFront("0x");
+		},
+		.Struct => {
+			const struct_type = @typeName(TargetType);
+
+			if (memory.compare(struct_type, "string.string.String", struct_type.len) == .Equal) {
+				try dest.pushStr(target.asStr());
+			}
+		},
+		.Type => try dest.pushStr(@typeName(target)),
+		else => @panic("Invalid type, found " ++ @typeName(TargetType))
 	}
 }
