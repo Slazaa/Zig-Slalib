@@ -1,14 +1,15 @@
 pub const char = u21;
 pub const str = []const u8;
 
-const memory = @import("memory.zig");
-const collections = @import("collections.zig");
+pub const string = @import("string/string.zig");
 
-const Allocator = memory.allocator.Allocator;
-const Vec = collections.vec.Vec;
+const memory = @import("memory.zig");
+
+const String = string.String;
 
 const std = @import("std");
 
+// ----- UTF-8 -----
 pub fn utf8Size(header_byte: u8) u3 {
 	const byte_template = 0b1000_0000;
 	var header_byte_val = header_byte;
@@ -54,7 +55,7 @@ pub fn decodeUtf8(bytes: []const u8) ?char {
 	return res;
 }
 
-pub fn encodeUtf8(dst: []u8, ch: char) void {
+pub fn encodeUtf8(dest: []u8, ch: char) void {
 	var ch_value = ch;
 	var zero_count: u5 = 0;
 
@@ -72,7 +73,7 @@ pub fn encodeUtf8(dst: []u8, ch: char) void {
 	};
 
 	if (char_size == 1) {
-		dst[0] = @truncate(u8, ch);
+		dest[0] = @truncate(u8, ch);
 		return;
 	}
 
@@ -81,11 +82,11 @@ pub fn encodeUtf8(dst: []u8, ch: char) void {
 	var char_idx = char_size - 1;
 
 	while (char_idx != 0) : (char_idx -= 1) {
-		dst[char_idx] = 0b1000_0000 | (@truncate(u8, ch_value) & 0b0011_1111);
+		dest[char_idx] = 0b1000_0000 | (@truncate(u8, ch_value) & 0b0011_1111);
 		ch_value >>= 6;
 	}
 
-	dst[char_idx] = switch (char_size) {
+	dest[char_idx] = switch (char_size) {
 		2 => 0b1100_0000 | (@truncate(u8, ch_value) & 0b0001_1111),
 		3 => 0b1110_0000 | (@truncate(u8, ch_value) & 0b0000_1111),
 		4 => 0b1111_0000 | (@truncate(u8, ch_value) & 0b0000_0111),
@@ -93,182 +94,93 @@ pub fn encodeUtf8(dst: []u8, ch: char) void {
 	};
 }
 
-pub const String = struct {
-	const Self = @This();
+// ----- Str -----
+pub fn countStr(self: str, target: str) usize {
+	var count: usize = 0;
+	var idx: usize = 0;
 
-	vec: Vec(u8),
-	len: usize = 0,
-
-	pub fn asStr(self: *const Self) str {
-		return self.vec.items;
+	while (find(self[idx..], target)) |string_idx| {
+		count += 1;
+		idx += string_idx + target.len;
 	}
 
-	pub fn clear(self: *Self) void {
-		self.vec.clear();
-	}
+	return count;
+}
 
-	pub fn deinit(self: *Self) void {
-		self.vec.deinit();
-	}
-
-	// pub fn find(self: *Self, string: str) usize {
-
-	// }
-
-	pub fn from(allocator: ?Allocator, string: str) memory.allocator.Error!Self {
-		return .{
-			.vec = try Vec(u8).from(allocator, string),
-			.len = string.len
-		};
-	}
-
-	pub fn get(self: *const Self, idx: usize) ?char {
-		if (idx > self.len) {
-			@panic("Index out of bounds");
-		}
-
-		var vec_idx: usize = 0;
-		var i: usize = 0;
-
-		while (true) : (i += 1) {
-			const ch = self.vec.get(vec_idx).?.*;
-			const vec_char_size = utf8Size(ch);
-
-			if (i == idx) {
-				return decodeUtf8(self.vec.getSlice(vec_idx, vec_idx + vec_char_size).?);
-			}
-
-			vec_idx += vec_char_size;
-		}
-	}
-
-	pub fn getStr(self: *const Self, start: usize, end: usize) ?str {
-		if (start > end or end > self.len) {
-			@panic("Index out of bounds");
-		}
-
-		var start_res: usize = 0;
-		var end_res: usize = 0;
-
-		var vec_idx: usize = 0;
-		var i: usize = 0;
-
-		while (true) : (i += 1) {
-			const ch = self.vec.get(vec_idx).?.*;
-			const vec_char_size = utf8Size(ch);
-
-			if (i == start) {
-				start_res = vec_idx;
-				end_res = start_res;
-			}
-			
-			if (i >= start) {
-				var char_utf8 = [_]u8{ 0 } ** 4;
-				encodeUtf8(&char_utf8, ch);
-
-				const char_size = utf8Size(char_utf8[0]);
-				end_res += char_size;
-
-				if (i == end) {
-					return self.vec.getSlice(start_res, end_res);
-				}
-			}
-
-			vec_idx += vec_char_size;
-		}
-	}
-
-	pub fn init(allocator: ?Allocator) Self {
-		return .{
-			.vec = Vec(u8).new(allocator)
-		};
-	}
-
-	pub fn insert(self: *Self, idx: usize, ch: char) memory.allocator.Error!void {
-		if (idx > self.len) {
-			@panic("Index out of bounds");
-		}
-
-		var vec_idx: usize = 0;
-		var i: usize = 0;
-
-		while (true) : (i += 1) {
-			const vec_char_size = utf8Size(self.vec.get(vec_idx).?.*);
-
-			if (i == idx) {
-				var char_utf8 = [_]u8{ 0 } ** 4;
-				encodeUtf8(&char_utf8, ch);
-
-				const char_size = utf8Size(char_utf8[0]);
-				var j: usize = char_size;
-
-				while (j != 0) : (j -= 1) {
-					try self.vec.insert(vec_idx, char_utf8[j - 1]);
-				}
-
-				return;
-			}
-
-			vec_idx += vec_char_size;
-		}
-	}
-
-	pub fn insertStr(self: *Self, idx: usize, string: str) memory.allocator.Error!void {
-		var i: usize = idx;
+pub fn find(self: str, target: str) ?usize {
+	var i: usize = 0;
 		
-		for (string) |byte| {
-			try self.vec.insert(i, byte);
-			i += 1;
+	while (i + target.len - 1 < self.len) : (i += 1) {
+		if (memory.compare(self[i..i + target.len].ptr, target.ptr, target.len) == .Equal) {
+			return i;
 		}
 	}
 
-	pub fn isEmpty(self: *const Self) bool {
-		return self.vec.isEmpty();
+	return null;
+}
+
+pub fn get(self: str, idx: usize) ?char {
+	return getStr(self, idx, 1);
+}
+
+pub fn getStr(self: str, idx: usize, count: usize) ?str {
+	if (idx >= self.len or idx + count > self.len) {
+		return null;
 	}
 
-	pub fn last(self: *const Self) ?char {
-		return self.get(self.len - 1);
-	}
+	var start_res: usize = 0;
+	var end_res: usize = 0;
 
-	pub fn pop(self: *Self) memory.allocator.Error!char {
-		return try self.remove(self.len - 1);
-	}
+	var vec_idx: usize = 0;
+	var i: usize = 0;
 
-	pub fn push(self: *Self, ch: char) memory.allocator.Error!void {
-		try self.insert(self.len, ch);
-	}
+	while (true) : (i += 1) {
+		const ch = self[vec_idx];
+		const vec_char_size = utf8Size(ch);
 
-	pub fn pushStr(self: *Self, string: str) memory.allocator.Error!void {
-		try self.insertStr(self.len, string);
-	}
-
-	pub fn remove(self: *Self, idx: usize) memory.allocator.Error!char {
-		if (idx > self.len) {
-			@panic("Index out of bounds");
+		if (i == idx) {
+			start_res = vec_idx;
+			end_res = start_res;
 		}
+		
+		if (i >= idx) {
+			var char_utf8 = [_]u8{ 0 } ** 4;
+			encodeUtf8(&char_utf8, ch);
 
-		var vec_idx: usize = 0;
-		var i: usize = 0;
+			const char_size = utf8Size(char_utf8[0]);
+			end_res += char_size;
 
-		while (true) : (i += 1) {
-			const vec_char = self.vec.get(vec_idx).?.*;
-			const vec_char_size = utf8Size(vec_char);
-
-			if (i == idx) {
-				var j: usize = vec_char_size;
-
-				while (j != 0) : (j -= 1) {
-					_ = try self.vec.remove(vec_idx);
-				}
-
-				return vec_char;
+			if (i == idx + count) {
+				return self[start_res..end_res];
 			}
-
-			vec_idx += vec_char_size;
 		}
+
+		vec_idx += vec_char_size;
 	}
+}
 
-	// pub fn replace(self: *Self, from: str, to: str) memory.allocator.Error!void {
+pub fn intToString(dest: *String, num: usize, base: usize) memory.allocator.Error!void {
+	dest.clear();
 
-	// }
-};
+	var num_val = num; 
+
+	while (num_val != 0) {
+		try dest.pushFront(@truncate(char, num_val % base) + 48);
+		num_val /= base;
+	}
+}
+
+pub fn isEmpty(self: str) bool {
+	return self.len == 0;
+}
+
+pub fn last(self: str) ?char {
+	return self[self.len - 1];
+}
+
+pub fn toString(dest: *String, target: anytype) memory.allocator.Error!void {
+	switch (@typeInfo(@TypeOf(target))) {
+		.ComptimeInt => try intToString(dest, target, 10),
+		else => @panic("Invalid type, found " ++ @typeName(@TypeOf(target)))
+	}
+}

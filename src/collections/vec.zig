@@ -28,7 +28,8 @@ pub fn Vec(comptime T: type) type {
 		pub fn from(allocator: ?Allocator, slice: []const T) memory.allocator.Error!Self {
 			var self = try Self.withCapacity(allocator, slice.len);
 			self.items.len = self.capacity;
-			memory.copy(@ptrCast(*anyopaque, self.items.ptr), slice.ptr, @sizeOf(T) * self.len());
+			
+			memory.copy(self.items.ptr, slice.ptr, @sizeOf(T) * self.len());
 
 			return self;
 		}
@@ -49,12 +50,12 @@ pub fn Vec(comptime T: type) type {
 			return if (!self.isEmpty()) &self.items[idx] else null;
 		}
 
-		pub fn getSlice(self: *const Self, start: usize, end: usize) ?[]const T {
-			if (start > end or end > self.len()) {
+		pub fn getSlice(self: *const Self, idx: usize, count: usize) ?[]const T {
+			if (idx >= self.len() or count == 0 or idx + count >= self.len()) {
 				return null;
 			}
 
-			return self.items[start..end];
+			return self.items[idx..idx + count];
 		}
 
 		pub fn init(allocator: ?Allocator) Self {
