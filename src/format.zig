@@ -8,10 +8,14 @@ const String = string.string.String;
 
 const std = @import("std");
 
-pub fn format(dest: *String, fmt: str, args: anytype) memory.allocator.Error!void {
+pub fn format(dest: *String, comptime fmt: str, args: anytype) memory.allocator.Error!void {
 	if (@typeInfo(@TypeOf(args)) != .Struct) {
 		@panic("Expected tuple, found" ++ @typeName(@TypeOf(args)));
 	}
+
+	// comptime if (args.len != string.countStr(fmt, "{}")) {
+	// 	@panic("Invalid number of arguments");
+	// };
 
 	if (args.len != string.countStr(fmt, "{}")) {
 		@panic("Invalid number of arguments");

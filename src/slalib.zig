@@ -2,6 +2,7 @@ pub const assert = @import("assert.zig");
 pub const collections = @import("collections.zig");
 pub const compare = @import("compare.zig");
 pub const io = @import("io.zig");
+pub const math = @import("math.zig");
 pub const memory = @import("memory.zig");
 pub const network = @import("network.zig");
 pub const string = @import("string.zig");

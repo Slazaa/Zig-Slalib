@@ -1,5 +1,5 @@
 # Slalib
-A anternative for the standard library heavily inspired from the Rust standard library.
+A anternative for the standard library heavily inspired from the Rust standard library. For now, Slalib is using libc but in the future it will not depend on anything.
 
 ## Goals
 - [ ] Collections

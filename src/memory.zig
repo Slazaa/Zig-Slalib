@@ -14,13 +14,8 @@ pub fn copy(dest: *anyopaque, src: *const anyopaque, size: usize) void {
 pub fn compare(first: *const anyopaque, second: *const anyopaque, size: usize) cmp.Ordering {
 	var res = c.memcmp(first, second, size);
 
-	if (res < 0) {
-		return .Less;
-	}
-
-	if (res > 0) {
-		return .Greater;
-	}
-
-	return .Equal;
+	return
+		if (res < 0) .Less
+		else if (res > 0) .Greater
+		else .Equal;
 }
