@@ -5,6 +5,8 @@ const string_ = @import("../string.zig");
 const char = string_.char;
 const str = string_.str;
 
+const utf8 = string_.utf8;
+
 const Vec = collections.vec.Vec;
 const Allocator = memory.allocator.Allocator;
 
@@ -60,9 +62,9 @@ pub const String = struct {
 
 	pub fn insert(self: *Self, idx: usize, ch: char) memory.allocator.Error!void {
 		var char_utf8 = [_]u8{ 0 } ** 4;
-		string_.encodeUtf8(&char_utf8, ch);
+		utf8.encode(&char_utf8, ch);
 
-		try self.insertStr(idx, char_utf8[0..string_.utf8Size(char_utf8[0])]);
+		try self.insertStr(idx, char_utf8[0..utf8.size(char_utf8[0])]);
 	}
 
 	pub fn insertStr(self: *Self, idx: usize, string: str) memory.allocator.Error!void {
@@ -87,7 +89,7 @@ pub const String = struct {
 				return;
 			}
 
-			vec_idx += string_.utf8Size(self.vec.get(vec_idx).?.*);
+			vec_idx += utf8.size(self.vec.get(vec_idx).?.*);
 		}
 	}
 
@@ -129,7 +131,7 @@ pub const String = struct {
 
 		while (true) : (i += 1) {
 			const vec_char = self.vec.get(vec_idx).?.*;
-			const vec_char_size = string_.utf8Size(vec_char);
+			const vec_char_size = utf8.size(vec_char);
 
 			if (i == idx) {
 				var j: usize = vec_char_size;
