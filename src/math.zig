@@ -1,6 +1,7 @@
 pub const expo = @import("math/expo.zig");
 pub const hyper = @import("math/hyper.zig");
 pub const pow = @import("math/pow.zig");
+pub const round = @import("math/round.zig");
 pub const trigo = @import("math/trigo.zig");
 
 const c = @cImport({

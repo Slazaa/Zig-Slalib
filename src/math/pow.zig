@@ -19,3 +19,12 @@ pub fn sqrt(comptime T: type, value: T) T {
 		else => @compileError("Expected float, found " ++ @typeName(T))
 	};
 }
+
+pub fn cbrt(comptime T: type, value: T) T {
+	return switch (T) {
+		f32 => c.cbrtf(value),
+		f64 => c.cbrt(value),
+		f128 => c.cbrtl(value),
+		else => @compileError("Expected float, found " ++ @typeName(T))
+	};
+}
