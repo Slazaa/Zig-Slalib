@@ -5,18 +5,18 @@ const char = string.char;
 pub fn size(header_byte: u8) u3 {
 	const byte_template = 0b1000_0000;
 	var header_byte_val = header_byte;
-	var size: u3 = 0;
+	var res: u3 = 0;
 
 	while (header_byte_val & byte_template == byte_template) {
-		size += 1;
+		res += 1;
 		header_byte_val <<= 1;
 	}
 
-	if (size == 0) {
+	if (res == 0) {
 		return 1;
 	}
 
-	return size;
+	return res;
 }
 
 pub fn decode(bytes: []const u8) ?char {

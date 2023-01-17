@@ -2,29 +2,47 @@ const c = @cImport({
 	@cInclude("math.h");
 });
 
-pub fn pow(comptime T: type, x: T, y: T) T {
-	return switch (T) {
-		f32 => c.powf(x, y),
-		f64 => c.pow(x, y),
-		f128 => c.powl(x, y),
+pub fn pow(x: anytype, y: @TypeOf(x)) @TypeOf(x) {
+	const T = @TypeOf(x);
+	const type_info = @typeInfo(T);
+
+	return switch (type_info) {
+		.Float => |float_type| switch (float_type.bits) {
+			32 => c.powf(x, y),
+			64 => c.pow(x, y),
+			128 => c.powl(x, y),
+			else => @compileError("Invalid bits for type " ++ @typeName(T))
+		},
 		else => @compileError("Expected float, found " ++ @typeName(T))
 	};
 }
 
-pub fn sqrt(comptime T: type, value: T) T {
-	return switch (T) {
-		f32 => c.sqrtf(value),
-		f64 => c.sqrt(value),
-		f128 => c.sqrtl(value),
+pub fn sqrt(value: anytype) @TypeOf(value) {
+	const T = @TypeOf(value);
+	const type_info = @typeInfo(T);
+
+	return switch (type_info) {
+		.Float => |float_type| switch (float_type.bits) {
+			32 => c.sqrtf(value),
+			64 => c.sqrt(value),
+			128 => c.sqrtl(value),
+			else => @compileError("Invalid bits for type " ++ @typeName(T))
+		},
 		else => @compileError("Expected float, found " ++ @typeName(T))
 	};
 }
 
-pub fn cbrt(comptime T: type, value: T) T {
-	return switch (T) {
-		f32 => c.cbrtf(value),
-		f64 => c.cbrt(value),
-		f128 => c.cbrtl(value),
+pub fn cbrt(value: anytype) @TypeOf(value) {
+	const T = @TypeOf(value);
+	const type_info = @typeInfo(T);
+
+	return switch (type_info) {
+		.Float => |float_type| switch (float_type.bits) {
+			32 => c.cbrtf(value),
+			64 => c.cbrt(value),
+			128 => c.cbrtl(value),
+			else => @compileError("Invalid bits for type " ++ @typeName(T))
+		},
 		else => @compileError("Expected float, found " ++ @typeName(T))
 	};
 }

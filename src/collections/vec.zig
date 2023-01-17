@@ -9,7 +9,7 @@ pub fn Vec(comptime T: type) type {
 	return struct {
 		const Self = @This();
 
-		items: []T = &[_]T{},
+		items: []T = &[_]T{ },
 		allocator: Allocator = GlobAlloc.allocator,
 		capacity: usize = 0,
 

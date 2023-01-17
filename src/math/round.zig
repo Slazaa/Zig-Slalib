@@ -2,29 +2,47 @@ const c = @cImport({
 	@cInclude("math.h");
 });
 
-pub fn ceil(comptime T: type, value: T) T {
-	return switch (T) {
-		f32 => c.ceilf(value),
-		f64 => c.ceil(value),
-		f128 => c.ceill(value),
+pub fn ceil(value: anytype) @TypeOf(value) {
+	const T = @TypeOf(value);
+	const type_info = @typeInfo(T);
+
+	return switch (type_info) {
+		.Float => |float_type| switch (float_type.bits) {
+			32 => c.ceilf(value),
+			64 => c.ceil(value),
+			128 => c.ceill(value),
+			else => @compileError("Invalid bits for type " ++ @typeName(T))
+		},
 		else => @compileError("Expected float, found " ++ @typeName(T))
 	};
 }
 
-pub fn floor(comptime T: type, value: T) T {
-	return switch (T) {
-		f32 => c.floorf(value),
-		f64 => c.floor(value),
-		f128 => c.floorl(value),
+pub fn floor(value: anytype) @TypeOf(value) {
+	const T = @TypeOf(value);
+	const type_info = @typeInfo(T);
+
+	return switch (type_info) {
+		.Float => |float_type| switch (float_type.bits) {
+			32 => c.floorf(value),
+			64 => c.floor(value),
+			128 => c.floorl(value),
+			else => @compileError("Invalid bits for type " ++ @typeName(T))
+		},
 		else => @compileError("Expected float, found " ++ @typeName(T))
 	};
 }
 
-pub fn round(comptime T: type, value: T) T {
-	return switch (T) {
-		f32 => c.roundf(value),
-		f64 => c.round(value),
-		f128 => c.roundl(value),
+pub fn round(value: anytype) @TypeOf(value) {
+	const T = @TypeOf(value);
+	const type_info = @typeInfo(T);
+
+	return switch (type_info) {
+		.Float => |float_type| switch (float_type.bits) {
+			32 => c.roundf(value),
+			64 => c.round(value),
+			128 => c.roundl(value),
+			else => @compileError("Invalid bits for type " ++ @typeName(T))
+		},
 		else => @compileError("Expected float, found " ++ @typeName(T))
 	};
 }

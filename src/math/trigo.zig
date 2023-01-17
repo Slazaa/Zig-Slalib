@@ -2,65 +2,107 @@ const c = @cImport({
 	@cInclude("math.h");
 });
 
-pub fn acos(comptime T: type, cosinus: T) T {
-	return switch (T) {
-		f32 => c.acosf(cosinus),
-		f64 => c.acos(cosinus),
-		f128 => c.acosl(cosinus),
+pub fn acos(x: anytype) @TypeOf(x) {
+	const T = @TypeOf(x);
+	const type_info = @typeInfo(T);
+
+	return switch (type_info) {
+		.Float => |float_type| switch (float_type.bits) {
+			32 => c.acosf(x),
+			64 => c.acos(x),
+			128 => c.acosl(x),
+			else => @compileError("Invalid bits for type " ++ @typeName(T))
+		},
 		else => @compileError("Expected float, found " ++ @typeName(T))
 	};
 }
 
-pub fn asin(comptime T: type, sinus: T) T {
-	return switch (T) {
-		f32 => c.asinf(sinus),
-		f64 => c.asin(sinus),
-		f128 => c.asinl(sinus),
+pub fn asin(x: anytype) @TypeOf(x) {
+	const T = @TypeOf(x);
+	const type_info = @typeInfo(T);
+
+	return switch (type_info) {
+		.Float => |float_type| switch (float_type.bits) {
+			32 => c.asinf(x),
+			64 => c.asin(x),
+			128 => c.asinl(x),
+			else => @compileError("Invalid bits for type " ++ @typeName(T))
+		},
 		else => @compileError("Expected float, found " ++ @typeName(T))
 	};
 }
 
-pub fn atan(comptime T: type, value: T) T {
-	return switch (T) {
-		f32 => c.atanf(value),
-		f64 => c.atan(value),
-		f128 => c.atanl(value),
+pub fn atan(x: anytype) @TypeOf(x) {
+	const T = @TypeOf(x);
+	const type_info = @typeInfo(T);
+
+	return switch (type_info) {
+		.Float => |float_type| switch (float_type.bits) {
+			32 => c.atanf(x),
+			64 => c.atan(x),
+			128 => c.atanl(x),
+			else => @compileError("Invalid bits for type " ++ @typeName(T))
+		},
 		else => @compileError("Expected float, found " ++ @typeName(T))
 	};
 }
 
-pub fn atan2(comptime T: type, x: T, y: T) T {
-	return switch (T) {
-		f32 => c.atan2f(x, y),
-		f64 => c.atan2(x, y),
-		f128 => c.atan2l(x, y),
+pub fn atan2(x: anytype) @TypeOf(x) {
+	const T = @TypeOf(x);
+	const type_info = @typeInfo(T);
+
+	return switch (type_info) {
+		.Float => |float_type| switch (float_type.bits) {
+			32 => c.atan2f(x),
+			64 => c.atan2(x),
+			128 => c.atan2l(x),
+			else => @compileError("Invalid bits for type " ++ @typeName(T))
+		},
 		else => @compileError("Expected float, found " ++ @typeName(T))
 	};
 }
 
-pub fn cos(comptime T: type, angle: T) T {
-	return switch (T) {
-		f32 => c.cosf(angle),
-		f64 => c.cos(angle),
-		f128 => c.cosl(angle),
+pub fn cos(x: anytype) @TypeOf(x) {
+	const T = @TypeOf(x);
+	const type_info = @typeInfo(T);
+
+	return switch (type_info) {
+		.Float => |float_type| switch (float_type.bits) {
+			32 => c.cosf(x),
+			64 => c.cos(x),
+			128 => c.cosl(x),
+			else => @compileError("Invalid bits for type " ++ @typeName(T))
+		},
 		else => @compileError("Expected float, found " ++ @typeName(T))
 	};
 }
 
-pub fn sin(comptime T: type, angle: T) T {
-	return switch (T) {
-		f32 => c.sinf(angle),
-		f64 => c.sin(angle),
-		f128 => c.sinl(angle),
+pub fn sin(x: anytype) @TypeOf(x) {
+	const T = @TypeOf(x);
+	const type_info = @typeInfo(T);
+
+	return switch (type_info) {
+		.Float => |float_type| switch (float_type.bits) {
+			32 => c.sinf(x),
+			64 => c.sin(x),
+			128 => c.sinl(x),
+			else => @compileError("Invalid bits for type " ++ @typeName(T))
+		},
 		else => @compileError("Expected float, found " ++ @typeName(T))
 	};
 }
 
-pub fn tan(comptime T: type, angle: T) T {
-	return switch (T) {
-		f32 => c.tanf(angle),
-		f64 => c.tan(angle),
-		f128 => c.tanl(angle),
+pub fn tan(x: anytype) @TypeOf(x) {
+	const T = @TypeOf(x);
+	const type_info = @typeInfo(T);
+
+	return switch (type_info) {
+		.Float => |float_type| switch (float_type.bits) {
+			32 => c.tanf(x),
+			64 => c.tan(x),
+			128 => c.tanl(x),
+			else => @compileError("Invalid bits for type " ++ @typeName(T))
+		},
 		else => @compileError("Expected float, found " ++ @typeName(T))
 	};
 }

@@ -7,11 +7,7 @@ pub const utf8 = @import("string/utf8.zig");
 const math = @import("math.zig");
 const memory = @import("memory.zig");
 
-const abs = math.abs;
-const pow = math.pow.pow;
 const String = string.String;
-
-const std = @import("std");
 
 pub fn countStr(self: str, target: str) usize {
 	var count: usize = 0;
@@ -40,7 +36,7 @@ pub fn find(self: str, target: str) ?usize {
 pub fn floatToString(dest: *String, num: f64, precision: usize, base: usize) memory.allocator.Error!void {
 	dest.clear();
 
-	var num_val = @floatToInt(usize, abs(f64, num) * pow(f64, 10, @intToFloat(f64, precision)));
+	var num_val = @floatToInt(usize, math.abs(num) * math.pow.pow(@as(f64, 10), @intToFloat(f64, precision)));
 	var foundNonZero = false;
 	var i: usize = 0;
 
@@ -49,9 +45,7 @@ pub fn floatToString(dest: *String, num: f64, precision: usize, base: usize) mem
 
 		if (!foundNonZero and ch != 0) {
 			foundNonZero = true;
-		}
-
-		if (foundNonZero) {
+		} else if (foundNonZero) {
 			ch += switch (ch) {
 				0...9 => 48,
 				10...35 => 65 - 10,
@@ -74,7 +68,10 @@ pub fn floatToString(dest: *String, num: f64, precision: usize, base: usize) mem
 }
 
 pub fn get(self: str, idx: usize) ?char {
-	return getStr(self, idx, 1);
+	return if (getStr(self, idx, 1)) |str_res|
+		utf8.decode(str_res)
+	else
+		null;
 }
 
 pub fn getStr(self: str, idx: usize, count: usize) ?str {
@@ -116,7 +113,7 @@ pub fn getStr(self: str, idx: usize, count: usize) ?str {
 pub fn intToString(dest: *String, num: isize, base: usize) memory.allocator.Error!void {
 	dest.clear();
 
-	var num_val = @intCast(usize, abs(isize, num));
+	var num_val = @intCast(usize, math.abs(num));
 
 	while (num_val != 0) {
 		var ch = @truncate(char, num_val % base);
@@ -169,19 +166,19 @@ pub fn toString(dest: *String, target: anytype) memory.allocator.Error!void {
 		},
 		.Bool => try dest.pushStr(if (target) "true" else "false"),
 		.ComptimeFloat,
-		.Enum => @panic("Not implemented yet"), // TODO
 		.Float => try floatToString(dest, @as(f64, target), 16, 10),
+		.Enum => @panic("Not implemented yet"), // TODO
 		.ComptimeInt,
-		.Int => try intToString(dest, @as(usize, target), 10),
+		.Int => try intToString(dest, @as(isize, target), 10),
 		.Null => try dest.pushStr("null"),
 		.Pointer => {
-			try intToString(dest, @ptrToInt(target), 16);
+			try intToString(dest, @intCast(isize, @ptrToInt(target)), 16);
 			try dest.pushStrFront("0x");
 		},
 		.Struct => @panic("Not implemented yet"), // TODO
 		.Type => try dest.pushStr(@typeName(target)),
 		.Undefined => try dest.pushStr("undefined"),
-		.Union => @panic("Not implemented yet"),
+		.Union => @panic("Not implemented yet"), // TODO
 		.Vector => @panic("Not implemented yet"), // TODO
 		else => @panic("Invalid type, found " ++ @typeName(TargetType))
 	}

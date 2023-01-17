@@ -13,11 +13,7 @@ pub fn format(dest: *String, comptime fmt: str, args: anytype) memory.allocator.
 		@panic("Expected tuple, found" ++ @typeName(@TypeOf(args)));
 	}
 
-	// comptime if (args.len != string.countStr(fmt, "{}")) {
-	// 	@panic("Invalid number of arguments");
-	// };
-
-	if (args.len != string.countStr(fmt, "{}")) {
+	if (args.len != string.countStr(fmt, "{}") - string.countStr(fmt, "{{")) {
 		@panic("Invalid number of arguments");
 	}
 
@@ -28,7 +24,8 @@ pub fn format(dest: *String, comptime fmt: str, args: anytype) memory.allocator.
 		var string_arg = String.init(null);
 		defer string_arg.deinit();
 
-		try string.toString(&string_arg, arg);
-		try dest.replaceOnce("{}", string_arg.asStr());
+		_ = arg;
+
+		// TODO
 	}
 }
