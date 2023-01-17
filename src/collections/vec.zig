@@ -1,16 +1,16 @@
+const collections = @import("../collections.zig");
 const memory = @import("../memory.zig");
 
+const Error = collections.Error;
 const Allocator = memory.allocator.Allocator;
 const GlobAlloc = memory.glob_alloc.GlobAlloc;
-
-const std = @import("std");
 
 pub fn Vec(comptime T: type) type {
 	return struct {
 		const Self = @This();
 
 		items: []T = &[_]T{ },
-		allocator: Allocator = GlobAlloc.allocator,
+		allocator: *Allocator = &GlobAlloc.allocator,
 		capacity: usize = 0,
 
 		pub fn clear(self: *Self) void {
@@ -29,8 +29,8 @@ pub fn Vec(comptime T: type) type {
 			self.allocator.dealloc(self.items.ptr);
 		}
 
-		pub fn from(allocator: ?Allocator, slice: []const T) memory.allocator.Error!Self {
-			var self = try Self.withCapacity(allocator, slice.len);
+		pub fn from(allocator: ?*Allocator, slice: []const T) Error!Self {
+			var self = Self.withCapacity(allocator, slice.len) catch |e| return .{ .allocator = e };
 			self.items.len = self.capacity;
 			
 			memory.copy(self.items.ptr, slice.ptr, @sizeOf(T) * self.len());
@@ -62,7 +62,7 @@ pub fn Vec(comptime T: type) type {
 			return self.items[idx..idx + count];
 		}
 
-		pub fn init(allocator: ?Allocator) Self {
+		pub fn init(allocator: ?*Allocator) Self {
 			return if (allocator) |alloc|
 				.{
 					.allocator = alloc
@@ -90,6 +90,12 @@ pub fn Vec(comptime T: type) type {
 
 			self.items[idx] = elem;
 		}
+
+		// pub fn insertSlice(self: *Self, idx: usize, slice: []const T) memory.allocator.Error!void {
+		// 	if (idx > self.len()) {
+
+		// 	}
+		// }
 
 		pub fn isEmpty(self: *const Self) bool {
 			return self.len() == 0;
@@ -140,7 +146,7 @@ pub fn Vec(comptime T: type) type {
 			self.items.ptr = @ptrCast([*]T, @alignCast(@alignOf(T), try new_mem));
 		}
 
-		pub fn withCapacity(allocator: ?Allocator, cap: usize) memory.allocator.Error!Self {
+		pub fn withCapacity(allocator: ?*Allocator, cap: usize) memory.allocator.Error!Self {
 			var self = Self.init(allocator);
 			try self.reserve(cap);
 

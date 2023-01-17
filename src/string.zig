@@ -140,6 +140,16 @@ pub fn last(self: str) ?char {
 	return self[self.len - 1];
 }
 
+pub fn matches(self: str, targets: []str) bool {
+	for (targets) |target| {
+		if (memory.compare(self, target) == .Equal) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 pub fn toString(dest: *String, target: anytype) memory.allocator.Error!void {
 	const TargetType = @TypeOf(target);
 	const type_info = @typeInfo(TargetType);
