@@ -1,13 +1,11 @@
 pub const char = u21;
 pub const str = []const u8;
 
-pub const string = @import("string/string.zig");
+pub const String = @import("string/string.zig");
 pub const utf8 = @import("string/utf8.zig");
 
 const math = @import("math.zig");
 const memory = @import("memory.zig");
-
-const String = string.String;
 
 pub fn countStr(self: str, target: str) usize {
 	var count: usize = 0;

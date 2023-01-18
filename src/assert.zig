@@ -1,9 +1,5 @@
-pub const Error = error {
-	Failed
-};
-
-pub fn assert(ok: bool) Error!void {
+pub fn assert(ok: bool) void {
 	if (!ok) {
-		return Error.Failed;
+		unreachable;
 	}
 }

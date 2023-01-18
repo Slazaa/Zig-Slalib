@@ -11,7 +11,7 @@ pub const char = string.char;
 pub const str = string.str;
 
 pub const String = string.string.String;
-pub const Vec = collections.vec.Vec;
+pub const Vec = collections.Vec;
 
 pub const format = @import("format.zig").format;
 
