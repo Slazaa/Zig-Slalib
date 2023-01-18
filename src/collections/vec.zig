@@ -1,4 +1,5 @@
 //! A contiguous growable array type.
+//! You can provide an allocator through the initaliazing functions, if set `null`, the GlobAlloc will be choosen.
 //!
 //! # Examples
 //! ```zig
@@ -76,7 +77,7 @@ pub fn Vec(comptime T: type) type {
 		///
 		/// # Examples
 		/// ```zig
-		/// var vec = try sla.Vec(i32).from(null, &[_]i32{ 1, 2, 3 });
+		/// var vec = try Vec(i32).from(null, &[_]i32{ 1, 2, 3 });
 		/// defer vec.deinit();
 		/// ```
 		pub fn deinit(self: *Self) void {
@@ -88,6 +89,19 @@ pub fn Vec(comptime T: type) type {
 		}
 
 		/// Returns `true` if the vector and the slice are equal.
+		///
+		/// # Examples
+		/// ```zig
+		/// var first_vec = try Vec(i32).from(null, &[_]i32{ 1, 2, 3 });
+		/// defer first_vec.deinit();
+		///
+		/// var second_vec = try first_vec.clone();
+		/// defer second_vec.deinit();
+		///
+		/// if (first_vec.equals(second_vec.items)) {
+		///		println("Both vectors are equal", .{ });
+		/// }
+		/// ```
 		pub fn equals(self: *const Self, slice: []const T) bool {
 			return memory.compare(self.items.ptr, slice.ptr, self.len() * @sizeOf(T)) == .Equal;
 		}
