@@ -52,19 +52,17 @@ pub fn getStr(self: *const Self, idx: usize, count: usize) ?str {
 }
 
 pub fn init(allocator: ?Allocator) Self {
-	return .{
-		.vec = Vec(u8).init(allocator)
-	};
+	return .{ .vec = Vec(u8).init(allocator) };
 }
 
-pub fn insert(self: *Self, idx: usize, ch: char) memory.allocator.Error!void {
+pub fn insert(self: *Self, idx: usize, ch: char) memory.Error!void {
 	var char_utf8 = [_]u8{ 0 } ** 4;
 	utf8.encode(&char_utf8, ch);
 
 	try self.insertStr(idx, char_utf8[0..utf8.size(char_utf8[0])]);
 }
 
-pub fn insertStr(self: *Self, idx: usize, string: str) memory.allocator.Error!void {
+pub fn insertStr(self: *Self, idx: usize, string: str) memory.Error!void {
 	if (idx > self.len) {
 		@panic("Index out of bounds");
 	}
@@ -98,27 +96,27 @@ pub fn last(self: *const Self) ?char {
 	return string_.last(self.asStr());
 }
 
-pub fn pop(self: *Self) memory.allocator.Error!char {
+pub fn pop(self: *Self) memory.Error!char {
 	return try self.remove(self.len - 1);
 }
 
-pub fn push(self: *Self, ch: char) memory.allocator.Error!void {
+pub fn push(self: *Self, ch: char) memory.Error!void {
 	try self.insert(self.len, ch);
 }
 
-pub fn pushFront(self: *Self, ch: char) memory.allocator.Error!void {
+pub fn pushFront(self: *Self, ch: char) memory.Error!void {
 	try self.insert(0, ch);
 }
 
-pub fn pushStr(self: *Self, string: str) memory.allocator.Error!void {
+pub fn pushStr(self: *Self, string: str) memory.Error!void {
 	try self.insertStr(self.len, string);
 }
 
-pub fn pushStrFront(self: *Self, string: str) memory.allocator.Error!void {
+pub fn pushStrFront(self: *Self, string: str) memory.Error!void {
 	try self.insertStr(0, string);
 }
 
-pub fn remove(self: *Self, idx: usize) memory.allocator.Error!char {
+pub fn remove(self: *Self, idx: usize) memory.Error!char {
 	if (idx > self.len) {
 		@panic("Index out of bounds");
 	}
@@ -146,7 +144,7 @@ pub fn remove(self: *Self, idx: usize) memory.allocator.Error!char {
 	}
 }
 
-pub fn removeStr(self: *Self, idx: usize, count: usize) memory.allocator.Error!void {
+pub fn removeStr(self: *Self, idx: usize, count: usize) memory.Error!void {
 	if (idx >= self.len or idx + count > self.len) {
 		@panic("Index out of range");
 	}
@@ -158,11 +156,11 @@ pub fn removeStr(self: *Self, idx: usize, count: usize) memory.allocator.Error!v
 	}
 }
 
-pub fn replace(self: *Self, string: str, to: str) memory.allocator.Error!void {
+pub fn replace(self: *Self, string: str, to: str) memory.Error!void {
 	try self.replacen(string, to, string_.countStr(self.asStr(), string));
 }
 
-pub fn replacen(self: *Self, string: str, to: str, count: usize) memory.allocator.Error!void {
+pub fn replacen(self: *Self, string: str, to: str, count: usize) memory.Error!void {
 	var idx: usize = 0;
 	var i: usize = 0;
 
@@ -178,6 +176,6 @@ pub fn replacen(self: *Self, string: str, to: str, count: usize) memory.allocato
 	}
 }
 
-pub fn replaceOnce(self: *Self, string: str, to: str) memory.allocator.Error!void {
+pub fn replaceOnce(self: *Self, string: str, to: str) memory.Error!void {
 	try self.replacen(string, to, 1);
 }
