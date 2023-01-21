@@ -29,7 +29,7 @@
 
 const collections = @import("../collections.zig");
 const memory = @import("../memory.zig");
-const slice_ = @import("../slice.zig");
+const slice = @import("../slice.zig");
 
 const Allocator = memory.Allocator;
 const GlobAlloc = memory.GlobAlloc;
@@ -74,6 +74,19 @@ pub fn Vec(comptime T: type) type {
 			return Self.from(null, self.items);
 		}
 
+		/// Returns the number of occurences of `target` in the vector.
+		/// 
+		/// # Examples
+		/// ```zig
+		/// var vec = try Vec(i32).from(null, &[_]i32{ 1, 2, 3, 2, 2, 6 });
+		/// defer vec.deinit();
+		///
+		/// assert(vec.count(2) == 3);
+		/// ```
+		pub fn count(self: *const Self, target: anytype) usize {
+			return slice.count(T, self.items, target);
+		}
+
 		/// Releases all allocated memory.
 		///
 		/// # Examples
@@ -82,10 +95,7 @@ pub fn Vec(comptime T: type) type {
 		/// defer vec.deinit();
 		/// ```
 		pub fn deinit(self: *Self) void {
-			if (self.capacity == 0) {
-				return;
-			}
-
+			if (self.capacity == 0) return;
 			self.allocator.dealloc(self.items.ptr);
 		}
 
@@ -103,8 +113,8 @@ pub fn Vec(comptime T: type) type {
 		///		println("Both vectors are equal", .{ });
 		/// }
 		/// ```
-		pub fn equals(self: *const Self, slice: []const T) bool {
-			return slice_.equals(T, self.items, slice);
+		pub fn equals(self: *const Self, target: []const T) bool {
+			return slice.equals(T, self.items, target);
 		}
 
 		/// Returns the position of the first occurence of the element, else returns `null`.
@@ -116,21 +126,8 @@ pub fn Vec(comptime T: type) type {
 		///
 		/// assert(vec.find(2).? == 1);
 		/// ```
-		pub fn find(self: *const Self, elem: T) ?usize {
-			return slice_.find(T, self.items, elem);
-		}
-
-		/// Returns the position of the first occurence of the slice, else returns `null`.
-		///
-		/// # Examples
-		/// ```zig
-		/// var vec = try Vec(i32).from(null, &[_]i32{ 1, 2, 3 });
-		/// defer vec.deinit();
-		///
-		/// assert(vec.findSlice(&[_]i32{ 2, 3 }).? == 1);
-		/// ```
-		pub fn findSlice(self: *const Self, slice: []const T) ?usize {
-			return slice_.findSlice(T, self.items, slice);
+		pub fn find(self: *const Self, to_find: anytype) ?usize {
+			return slice.find(T, self.items, to_find);
 		}
 
 		/// Initializes a new vector from a slice.
@@ -142,11 +139,11 @@ pub fn Vec(comptime T: type) type {
 		///
 		/// assert(vec.equals(&[_]i32{ 1, 2, 3 }));
 		/// ```
-		pub fn from(allocator: ?*const Allocator, slice: []const T) memory.Error!Self {
-			var self = try Self.withCapacity(allocator, slice.len);
+		pub fn from(allocator: ?*const Allocator, target: []const T) memory.Error!Self {
+			var self = try Self.withCapacity(allocator, target.len);
 			self.items.len = self.capacity;
 			
-			memory.copy(self.items.ptr, slice.ptr, @sizeOf(T) * self.len());
+			memory.copy(self.items.ptr, target.ptr, @sizeOf(T) * self.len());
 
 			return self;
 		}
@@ -159,51 +156,53 @@ pub fn Vec(comptime T: type) type {
 		/// defer vec.deinit();
 		/// ```
 		pub fn init(allocator: ?*const Allocator) Self {
-			return if (allocator) |alloc|
-				.{ .allocator = alloc }
-			else
-				.{ };
+			return
+				if (allocator) |alloc| .{ .allocator = alloc }
+				else .{ };
 		}
 
 		/// Inserts an element at the given index in the vector, shifting all the elements after it to the right.
 		/// 
 		/// # Examples
 		/// ```zig
-		/// var vec = try Vec(i32).from(null, &[_]i32{ 1, 3 });
-		/// defer vec.deinit();
-		///
-		/// try vec.insert(1, 2);
-		///
-		/// assert(vec.equals(&[_]i32{ 1, 2, 3 }));
-		/// ```
-		pub fn insert(self: *Self, idx: usize, elem: T) memory.Error!void {
-			try self.insertSlice(idx, &[_]T{ elem });
-		}
-
-		/// Inserts a slice at the given index in the vector, shifting all the elements after it to the right.
-		///
-		// # Examples
-		/// ```zig
 		/// var vec = try Vec(i32).from(null, &[_]i32{ 1, 5 });
 		/// defer vec.deinit();
 		///
-		/// try vec.insertSlice(1, &[_]i32{ 2, 3, 4 });
+		/// try vec.insert(1, 2);
+		/// try vec.insert(2, &[_]i32{ 3, 4 });
 		///
 		/// assert(vec.equals(&[_]i32{ 1, 2, 3, 4, 5 }));
 		/// ```
-		pub fn insertSlice(self: *Self, idx: usize, slice: []const T) memory.Error!void {
-			if (idx > self.len()) {
-				@panic("Index out of bounds");
+		pub fn insert(self: *Self, idx: usize, target: anytype) memory.Error!void {
+			const TargetType = @TypeOf(target);
+
+			switch (TargetType) {
+				[]const T => {
+					if (idx > self.len()) @panic("Index out of bounds");
+
+					if (self.capacity < self.len() + target.len) try self.reserve(self.capacity - self.len() + target.len);
+
+					self.items.len += target.len;
+
+					memory.move(self.items[idx + target.len..].ptr, self.items[idx..].ptr, @sizeOf(T) * (self.len() - (idx + target.len)));
+					memory.copy(self.items[idx..].ptr, target.ptr, target.len * @sizeOf(T));
+				},
+				T => try self.insert(idx, &[_]T{ target }),
+				comptime_float => {
+					if (@typeInfo(T) != .Float) @panic("Cannot cast comptime_float to " ++ @typeName(T));
+					try self.insert(idx, @as(T, target));
+				},
+				comptime_int => {
+					if (@typeInfo(T) != .Int) @panic("Cannot cast comptime_int to " ++ @typeName(T));
+					try self.insert(idx, @as(T, target));
+				},
+				else => {
+					const target_type_info = @typeInfo(TargetType);
+
+					if (target_type_info == .Pointer and target_type_info.Pointer.child == .Array) try self.insert(idx, @as([]const T, target))
+					else @panic("Expected single element or slice of element, found " ++ @typeName(TargetType));
+				}
 			}
-
-			if (self.capacity < self.len() + slice.len) {
-				try self.reserve(self.capacity - self.len() + slice.len);
-			}
-
-			self.items.len += slice.len;
-
-			memory.copy(self.items[idx + slice.len..self.len()].ptr, self.items[idx..self.len() - slice.len].ptr, (self.len() - slice.len - idx) * @sizeOf(T));
-			memory.copy(self.items[idx..idx + slice.len].ptr, slice.ptr, slice.len * @sizeOf(T));
 		}
 
 		/// Returns `true` if the vector contains no elements.
@@ -216,7 +215,7 @@ pub fn Vec(comptime T: type) type {
 		/// assert(vec.isEmpty());
 		/// ```
 		pub fn isEmpty(self: *const Self) bool {
-			return self.len() == 0;
+			return slice.isEmpty(T, self.items);
 		}
 
 		/// Returns the length of the vector.
@@ -246,7 +245,7 @@ pub fn Vec(comptime T: type) type {
 			return self.remove(self.len() - 1);
 		}
 
-		/// Appends an element to the back of the vector.
+		/// Appends an element or a slice to the back of the vector.
 		///
 		/// # Examples
 		/// ```zig
@@ -257,23 +256,8 @@ pub fn Vec(comptime T: type) type {
 		///
 		/// assert(vec.equals(&[_]i32{ 1, 2, 3 }));
 		/// ```
-		pub fn push(self: *Self, elem: T) memory.Error!void {
-			try self.insert(self.len(), elem);
-		}
-
-		/// Appends a slice to the back of the vector.
-		///
-		/// # Examples
-		/// ```zig
-		/// var vec = try Vec(i32).from(null, &[_]i32{ 1, 2 });
-		/// defer vec.deinit();
-		///
-		/// try vec.pushSlice(&[_]i32{ 3, 4, 5 });
-		///
-		/// assert(vec.equals(&[_]i32{ 1, 2, 3, 4, 5 }));
-		/// ```
-		pub fn pushSlice(self: *Self, slice: []const T) memory.Error!void {
-			try self.insertSlice(self.len(), slice);
+		pub fn push(self: *Self, target: anytype) memory.Error!void {
+			try self.insert(self.len(), target);
 		}
 
 		/// Removes and returns the element at the given index in the vector, shifting all elements after it to the left.
@@ -287,9 +271,7 @@ pub fn Vec(comptime T: type) type {
 		/// assert(vec.equals(&[_]i32{ 1, 3 }));
 		/// ```
 		pub fn remove(self:* Self, idx: usize) T {
-			if (idx >= self.len()) {
-				@panic("Index out of bounds");
-			}
+			if (idx >= self.len()) @panic("Index out of bounds");
 
 			var elem = self.items[idx];
 
@@ -299,22 +281,75 @@ pub fn Vec(comptime T: type) type {
 			return elem;
 		}
 
-		/// Replaces `count` occurences of `slice` with `to`.
-		pub fn replacen(self: *Self, slice: []const T, to: []const T, count: usize) memory.Error!void {
-			var idx: usize = 0;
-			var i: usize = 0;
+		/// Replaces all occurencese of `target` with `to`.
+		///
+		/// # Examples
+		/// ```zig
+		/// var vec = try Vec(i32).from(null, &[_]i32{ 1, 10, 20, 5 });
+		/// defer vec.deinit();
+		///
+		/// try vec.replace(&[_]i32{ 10 }, 2);
+		/// try vec.replace(&[_]i32{ 20 }, &[_]i32{ 3, 4 });
+		///
+		/// assert(vec.equals(&[_]i32{ 1, 2, 3, 4, 5 }));
+		/// ```
+		pub fn replace(self: *Self, target: []const T, to: anytype) memory.Error!void {
+			try self.replacen(target, to, self.count(target));
+		}
 
-			while (i < count) : (i += 1) {
-				if (find(self.items[idx..], slice)) |slice_idx| {
-					if (slice.len == to.len) {
-						memory.copy(self.items[idx + slice_idx..idx + slice_idx + slice.len].ptr, to.ptr, slice.len * @sizeOf(T));
-					} else {
-						@panic("Not implemented yet");
+		/// Replaces `num` occurences of `target` with `to`.
+		///
+		/// # Examples
+		/// ```zig
+		/// var vec = try Vec(i32).from(null, &[_]i32{ 1, 10, 10, 5 });
+		/// defer vec.deinit();
+		///
+		/// try vec.replacen(&[_]i32{ 10 }, 2, 1);
+		/// try vec.replacen(&[_]i32{ 10 }, &[_]i32{ 3, 4 }, 1);
+		///
+		/// assert(vec.equals(&[_]i32{ 1, 2, 3, 4, 5 }));
+		/// ```
+		pub fn replacen(self: *Self, target: []const T, to: anytype, num: usize) memory.Error!void {
+			if (num == 0) return;
+
+			const ToType = @TypeOf(to);
+
+			switch (ToType) {
+				[]const T => {
+					var idx: usize = 0;
+					var i: usize = 0;
+
+					while (i < num) : (i += 1) {
+						if (slice.find(T, self.items[idx..], target)) |target_idx| {
+							if (target.len == to.len) {
+								memory.copy(self.items[idx + target_idx..].ptr, to.ptr, @sizeOf(T) * to.len);
+							} else {
+								memory.move(self.items[idx + target_idx..].ptr, self.items[idx + target_idx + target.len..].ptr, @sizeOf(T) * (self.len() - (idx + target.len)));
+								self.items.len -= target.len;
+
+								try self.insert(idx + target_idx, to);
+							}
+
+							idx += target_idx;
+						} else {
+							break;
+						}
 					}
+				},
+				T => try self.replacen(target, @as([]const T, &[_]T{ to }), num),
+				comptime_float => {
+					if (@typeInfo(T) != .Float) @panic("Cannot cast comptime_float to " ++ @typeName(T));
+					try self.replacen(target, @as(T, to), num);
+				},
+				comptime_int => {
+					if (@typeInfo(T) != .Int) @panic("Cannot cast comptime_int to " ++ @typeName(T));
+					try self.replacen(target, @as(T, to), num);
+				},
+				else => {
+					const to_type_info = @typeInfo(ToType);
 
-					idx += slice_idx;
-				} else {
-					break;
+					if (to_type_info == .Pointer and @typeInfo(to_type_info.Pointer.child) == .Array) try self.replacen(target, @as([]const T, to), num)
+					else @panic("Expected single element or slice of element, found " ++ @typeName(ToType));
 				}
 			}
 		}
@@ -331,17 +366,14 @@ pub fn Vec(comptime T: type) type {
 		/// assert(vec.capacity == 11);
 		/// ```
 		pub fn reserve(self: *Self, additional: usize) memory.Error!void {
-			if (additional == 0) {
-				return;
-			}
+			if (additional == 0) return;
 
 			var old_cap = self.capacity;
 			self.capacity += additional;
 			
-			var new_mem = if (old_cap != 0)
-				self.allocator.realloc(self.items.ptr, @sizeOf(T) * self.capacity)
-			else
-				self.allocator.alloc(@sizeOf(T) * self.capacity);
+			var new_mem =
+				if (old_cap != 0) self.allocator.realloc(self.items.ptr, @sizeOf(T) * self.capacity)
+				else self.allocator.alloc(@sizeOf(T) * self.capacity);
 
 			self.items.ptr = @ptrCast([*]T, @alignCast(@alignOf(T), try new_mem));
 		}

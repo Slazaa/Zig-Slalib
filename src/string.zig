@@ -7,30 +7,6 @@ pub const utf8 = @import("string/utf8.zig");
 const math = @import("math.zig");
 const memory = @import("memory.zig");
 
-pub fn countStr(self: str, target: str) usize {
-	var count: usize = 0;
-	var idx: usize = 0;
-
-	while (find(self[idx..], target)) |string_idx| {
-		count += 1;
-		idx += string_idx + target.len;
-	}
-
-	return count;
-}
-
-pub fn find(self: str, target: str) ?usize {
-	var i: usize = 0;
-		
-	while (i + target.len - 1 < self.len) : (i += 1) {
-		if (memory.compare(self[i..i + target.len].ptr, target.ptr, target.len) == .Equal) {
-			return i;
-		}
-	}
-
-	return null;
-}
-
 pub fn floatToString(dest: *String, num: f64, precision: usize, base: usize) memory.allocator.Error!void {
 	dest.clear();
 
@@ -66,16 +42,13 @@ pub fn floatToString(dest: *String, num: f64, precision: usize, base: usize) mem
 }
 
 pub fn get(self: str, idx: usize) ?char {
-	return if (getStr(self, idx, 1)) |str_res|
-		utf8.decode(str_res)
-	else
-		null;
+	return
+		if (getStr(self, idx, 1)) |str_res| utf8.decode(str_res)
+		else null;
 }
 
 pub fn getStr(self: str, idx: usize, count: usize) ?str {
-	if (idx >= self.len or idx + count > self.len) {
-		return null;
-	}
+	if (idx >= self.len or idx + count > self.len) return null;
 
 	var start_res: usize = 0;
 	var end_res: usize = 0;
@@ -125,27 +98,7 @@ pub fn intToString(dest: *String, num: isize, base: usize) memory.allocator.Erro
 		num_val /= base;
 	}
 
-	if (num < 0) {
-		try dest.pushFront('-');
-	}
-}
-
-pub fn isEmpty(self: str) bool {
-	return self.len == 0;
-}
-
-pub fn last(self: str) ?char {
-	return self[self.len - 1];
-}
-
-pub fn matches(self: str, targets: []str) bool {
-	for (targets) |target| {
-		if (memory.compare(self, target) == .Equal) {
-			return true;
-		}
-	}
-
-	return false;
+	if (num < 0) try dest.pushFront('-');
 }
 
 pub fn toString(dest: *String, target: anytype) memory.allocator.Error!void {

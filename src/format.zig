@@ -44,9 +44,7 @@ fn checkHints(fmt_string: str) ?HintError {
 	const close_bracket = string.find(fmt_string, "}") orelse return .SingleOpenBracket;
 
 	// Check that the closing bracket is after the opening one
-	if (close_bracket < open_bracket) {
-		return .SingleCloseBracket;
-	}
+	if (close_bracket < open_bracket) return .SingleCloseBracket;
 
 	// Check that the hint kind is correct
 	if (

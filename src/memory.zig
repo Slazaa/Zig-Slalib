@@ -23,3 +23,7 @@ pub fn compare(first: *const anyopaque, second: *const anyopaque, size: usize) c
 		else if (res > 0) .Greater
 		else .Equal;
 }
+
+pub fn move(dest: *anyopaque, src:* const anyopaque, size: usize) void {
+	_ = c.memmove(dest, src, size);
+}

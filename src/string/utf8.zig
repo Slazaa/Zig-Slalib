@@ -1,8 +1,9 @@
 const string = @import("../string.zig");
 
 const char = string.char;
+const str = string.str;
 
-pub fn size(header_byte: u8) u3 {
+pub fn size(header_byte: char) u3 {
 	const byte_template = 0b1000_0000;
 	var header_byte_val = header_byte;
 	var res: u3 = 0;
@@ -12,14 +13,12 @@ pub fn size(header_byte: u8) u3 {
 		header_byte_val <<= 1;
 	}
 
-	if (res == 0) {
-		return 1;
-	}
-
-	return res;
+	return
+		if (res == 0) 1
+		else res;
 }
 
-pub fn decode(bytes: []const u8) ?char {
+pub fn decode(bytes: str) ?char {
 	switch (bytes.len) {
 		0 => return null,
 		1 => return bytes[0],
