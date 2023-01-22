@@ -17,13 +17,15 @@ fn writeFn(iface: *const Write, buffer: []const u8) Error!void {
 	
 	switch (bultin.os.tag) {
 		.windows => {
-			const windows = @cImport({ @cInclude("windows.h"); });
+			const windows = @cImport({
+				@cInclude("windows.h");
+			});
 
 			const std_out = windows.GetStdHandle(windows.STD_OUTPUT_HANDLE);
 			if (std_out == null or std_out == windows.INVALID_HANDLE_VALUE) return Error.WritingFailed;
 
 			var written: u32 = 0;
-			_ = windows.WriteConsoleA(std_out, buffer.ptr, @intCast(c_ulong, buffer.len), &written, null);
+			if (windows.WriteConsoleA(std_out, buffer.ptr, @intCast(c_ulong, buffer.len), &written, null) == 0) return Error.WritingFailed;
 		},
 		else => @panic("OS not supported")
 	}

@@ -38,13 +38,13 @@ pub fn equals(comptime T: type, self: []const T, slice: []const T) bool {
 	return
 		if (self.len != slice.len) false
 		else if (self.ptr == slice.ptr) true
-		else memory.compare(self.ptr, slice.ptr, self.len * @sizeOf(T)) == .Equal;
+		else memory.compare(T, self, slice, self.len) == .Equal;
 }
 
 pub fn find(comptime T: type, self: []const T, target: anytype) ?usize {
-	const ToFindType = @TypeOf(target);
+	const TargetType = @TypeOf(target);
 
-	switch (ToFindType) {
+	switch (TargetType) {
 		[]const T => {
 			if (isEmpty(T, self) or target.len > self.len) return null;
 
@@ -63,7 +63,12 @@ pub fn find(comptime T: type, self: []const T, target: anytype) ?usize {
 			if (@typeInfo(T) != .Int) @panic("Cannot cast comptime_int to " ++ @typeName(T));
 			return find(T, self, @as(T, target));
 		},
-		else => @panic("Expected single element or slice of element, found " ++ @typeName(ToFindType))
+		else => {
+			const target_type_info = @typeInfo(TargetType);
+
+			if (target_type_info == .Pointer and @typeInfo(target_type_info.Pointer.child) == .Array) return find(T, self, @as([]const T, target))
+			else @panic("Expected single element or slice of element, found " ++ @typeName(TargetType));
+		}
 	}
 
 	return null;
@@ -73,7 +78,7 @@ pub fn isEmpty(comptime T: type, self: []const T) bool {
 	return self.len == 0;
 }
 
-pub fn matches(comptime T: type, self: []const T, slices: [][]const T) bool {
+pub fn matches(comptime T: type, self: []const T, slices: []const []const T) bool {
 	for (slices) |slice| {
 		if (equals(T, self, slice)) return true;
 	}

@@ -1,29 +1,45 @@
 pub const Allocator = @import("memory/allocator.zig");
 pub const GlobAlloc = @import("memory/glob_alloc.zig");
 
-const cmp = @import("compare.zig");
+const assert_ = @import("assert.zig");
+const collections = @import("collections.zig");
+const compare_ = @import("compare.zig");
 
-const c = @cImport({
-	@cInclude("string.h");
-});
+const assert = assert_.assert;
+const Vec = collections.Vec;
+const Ordering = compare_.Ordering;
 
 pub const Error = error {
 	AllocationFailed
 };
 
-pub fn copy(dest: *anyopaque, src: *const anyopaque, size: usize) void {
-	_ = c.memcpy(dest, src, size);
+pub fn copy(comptime T: type, dest: []T, src: []const T, size: usize) void {
+	assert(dest.len >= size and src.len >= size);
+
+	var i: usize = 0;
+
+	while (i != size) : (i += 1) {
+		dest[i] = src[i];
+	}
 }
 
-pub fn compare(first: *const anyopaque, second: *const anyopaque, size: usize) cmp.Ordering {
-	var res = c.memcmp(first, second, size);
+pub fn compare(comptime T: type, first: []const T, second: [] const T, size: usize) Ordering {
+	assert(first.len >= size and second.len >= size);
 
-	return
-		if (res < 0) .Less
-		else if (res > 0) .Greater
-		else .Equal;
+	var i: usize = 0;
+
+	while (i != size) : (i += 1) {
+		if (first[i] < second[i]) return .Less
+		else if (first[i] > second[i]) return .Greater;
+	}
+
+	return .Equal;
 }
 
-pub fn move(dest: *anyopaque, src:* const anyopaque, size: usize) void {
-	_ = c.memmove(dest, src, size);
+pub fn move(comptime T: type, dest: []T, src: []const T, size: usize) Error!void {
+	var tmp = try Vec(T).from(null, src[0..size]);
+	defer tmp.deinit();
+
+	copy(T, tmp.items, src, size);
+	copy(T, dest, tmp.items, size);
 }

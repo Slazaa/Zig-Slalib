@@ -18,13 +18,13 @@
 //! vec.items[0] = 7;
 //! assert(vec.items[0] == 7);
 //!
-//! try vec.pushSlice(&[_]i32{ 1, 2, 3 });
+//! try vec.pushSlice(&[_]i32{1, 2, 3});
 //!
 //! for (vec.items) |x| {
 //! 	println("{}", .{ x });
 //! }
 //!
-//! assert(vec.equals(&[_]i32{ 7, 1, 2, 3 }));
+//! assert(vec.equals(&[_]i32{7, 1, 2, 3}));
 //! ```
 
 const collections = @import("../collections.zig");
@@ -95,7 +95,10 @@ pub fn Vec(comptime T: type) type {
 		/// defer vec.deinit();
 		/// ```
 		pub fn deinit(self: *Self) void {
-			if (self.capacity == 0) return;
+			if (self.capacity == 0) {
+				return;
+			}
+
 			self.allocator.dealloc(self.items.ptr);
 		}
 
@@ -143,7 +146,7 @@ pub fn Vec(comptime T: type) type {
 			var self = try Self.withCapacity(allocator, target.len);
 			self.items.len = self.capacity;
 			
-			memory.copy(self.items.ptr, target.ptr, @sizeOf(T) * self.len());
+			memory.copy(T, self.items, target, self.len());
 
 			return self;
 		}
@@ -184,23 +187,32 @@ pub fn Vec(comptime T: type) type {
 
 					self.items.len += target.len;
 
-					memory.move(self.items[idx + target.len..].ptr, self.items[idx..].ptr, @sizeOf(T) * (self.len() - (idx + target.len)));
-					memory.copy(self.items[idx..].ptr, target.ptr, target.len * @sizeOf(T));
+					try memory.move(T, self.items[idx + target.len..], self.items[idx..],self.len() - (idx + target.len));
+					memory.copy(T, self.items[idx..], target, target.len);
 				},
 				T => try self.insert(idx, &[_]T{ target }),
 				comptime_float => {
-					if (@typeInfo(T) != .Float) @panic("Cannot cast comptime_float to " ++ @typeName(T));
+					if (@typeInfo(T) != .Float) {
+						@panic("Cannot cast comptime_float to " ++ @typeName(T));
+					}
+
 					try self.insert(idx, @as(T, target));
 				},
 				comptime_int => {
-					if (@typeInfo(T) != .Int) @panic("Cannot cast comptime_int to " ++ @typeName(T));
+					if (@typeInfo(T) != .Int) {
+						@panic("Cannot cast comptime_int to " ++ @typeName(T));
+					}
+					
 					try self.insert(idx, @as(T, target));
 				},
 				else => {
 					const target_type_info = @typeInfo(TargetType);
 
-					if (target_type_info == .Pointer and target_type_info.Pointer.child == .Array) try self.insert(idx, @as([]const T, target))
-					else @panic("Expected single element or slice of element, found " ++ @typeName(TargetType));
+					if (target_type_info == .Pointer and @typeInfo(target_type_info.Pointer.child) == .Array) {
+						try self.insert(idx, @as([]const T, target));
+					} else {
+						@panic("Expected single element or slice of element, found " ++ @typeName(TargetType));
+					}
 				}
 			}
 		}
@@ -275,10 +287,17 @@ pub fn Vec(comptime T: type) type {
 
 			var elem = self.items[idx];
 
-			memory.copy(self.items[idx..self.len() - 1].ptr, self.items[idx + 1..self.len()].ptr, (self.len() - 1 - idx) * @sizeOf(T));
+			memory.copy(T, self.items[idx..self.len() - 1], self.items[idx + 1..self.len()], (self.len() - 1 - idx));
 			self.items.len -= 1;
 
 			return elem;
+		}
+
+		pub fn removen(self: *Self, idx: usize, num: usize) void {
+			if (idx >= self.len()) @panic("Index out of bounds");
+
+			var i: usize = 0;
+			while (i != num) : (i += 1) self.remove(idx);
 		}
 
 		/// Replaces all occurencese of `target` with `to`.
@@ -322,9 +341,9 @@ pub fn Vec(comptime T: type) type {
 					while (i < num) : (i += 1) {
 						if (slice.find(T, self.items[idx..], target)) |target_idx| {
 							if (target.len == to.len) {
-								memory.copy(self.items[idx + target_idx..].ptr, to.ptr, @sizeOf(T) * to.len);
+								memory.copy(T, self.items[idx + target_idx..], to, to.len);
 							} else {
-								memory.move(self.items[idx + target_idx..].ptr, self.items[idx + target_idx + target.len..].ptr, @sizeOf(T) * (self.len() - (idx + target.len)));
+								memory.move(T, self.items[idx + target_idx..], self.items[idx + target_idx + target.len..], self.len() - (idx + target.len));
 								self.items.len -= target.len;
 
 								try self.insert(idx + target_idx, to);
@@ -338,18 +357,27 @@ pub fn Vec(comptime T: type) type {
 				},
 				T => try self.replacen(target, @as([]const T, &[_]T{ to }), num),
 				comptime_float => {
-					if (@typeInfo(T) != .Float) @panic("Cannot cast comptime_float to " ++ @typeName(T));
+					if (@typeInfo(T) != .Float) {
+						@panic("Cannot cast comptime_float to " ++ @typeName(T));
+					}
+
 					try self.replacen(target, @as(T, to), num);
 				},
 				comptime_int => {
-					if (@typeInfo(T) != .Int) @panic("Cannot cast comptime_int to " ++ @typeName(T));
+					if (@typeInfo(T) != .Int) {
+						@panic("Cannot cast comptime_int to " ++ @typeName(T));
+					}
+
 					try self.replacen(target, @as(T, to), num);
 				},
 				else => {
 					const to_type_info = @typeInfo(ToType);
 
-					if (to_type_info == .Pointer and @typeInfo(to_type_info.Pointer.child) == .Array) try self.replacen(target, @as([]const T, to), num)
-					else @panic("Expected single element or slice of element, found " ++ @typeName(ToType));
+					if (to_type_info == .Pointer and @typeInfo(to_type_info.Pointer.child) == .Array) {
+						try self.replacen(target, @as([]const T, to), num);
+					} else {
+						@panic("Expected single element or slice of element, found " ++ @typeName(ToType));
+					}
 				}
 			}
 		}
@@ -366,7 +394,9 @@ pub fn Vec(comptime T: type) type {
 		/// assert(vec.capacity == 11);
 		/// ```
 		pub fn reserve(self: *Self, additional: usize) memory.Error!void {
-			if (additional == 0) return;
+			if (additional == 0) {
+				return;
+			}
 
 			var old_cap = self.capacity;
 			self.capacity += additional;

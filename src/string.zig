@@ -6,8 +6,23 @@ pub const utf8 = @import("string/utf8.zig");
 
 const math = @import("math.zig");
 const memory = @import("memory.zig");
+const slice = @import("slice.zig");
 
-pub fn floatToString(dest: *String, num: f64, precision: usize, base: usize) memory.allocator.Error!void {
+const std = @import("std");
+
+pub fn count(self: str, target: anytype) usize {
+	return slice.count(u8, self, target);
+}
+
+pub fn equals(self: str, string: str) bool {
+	return slice.equals(u8, self, string);
+}
+
+pub fn find(self: str, target: anytype) ?usize {
+	return slice.find(u8, self, target);
+}
+
+pub fn floatToString(dest: *String, num: f64, precision: usize, base: usize) memory.Error!void {
 	dest.clear();
 
 	var num_val = @floatToInt(usize, math.abs(num) * math.pow.pow(@as(f64, 10), @intToFloat(f64, precision)));
@@ -47,8 +62,8 @@ pub fn get(self: str, idx: usize) ?char {
 		else null;
 }
 
-pub fn getStr(self: str, idx: usize, count: usize) ?str {
-	if (idx >= self.len or idx + count > self.len) return null;
+pub fn getStr(self: str, idx: usize, num: usize) ?str {
+	if (idx >= self.len or idx + num > self.len) return null;
 
 	var start_res: usize = 0;
 	var end_res: usize = 0;
@@ -72,7 +87,7 @@ pub fn getStr(self: str, idx: usize, count: usize) ?str {
 			const char_size = utf8.size(char_utf8[0]);
 			end_res += char_size;
 
-			if (i == idx + count) {
+			if (i == idx + num) {
 				return self[start_res..end_res];
 			}
 		}
@@ -81,7 +96,7 @@ pub fn getStr(self: str, idx: usize, count: usize) ?str {
 	}
 }
 
-pub fn intToString(dest: *String, num: isize, base: usize) memory.allocator.Error!void {
+pub fn intToString(dest: *String, num: isize, base: usize) memory.Error!void {
 	dest.clear();
 
 	var num_val = @intCast(usize, math.abs(num));
@@ -94,14 +109,18 @@ pub fn intToString(dest: *String, num: isize, base: usize) memory.allocator.Erro
 			else => 0
 		};
 
-		try dest.pushFront(ch);
+		try dest.insert(0, ch);
 		num_val /= base;
 	}
 
-	if (num < 0) try dest.pushFront('-');
+	if (num < 0) try dest.insert(0, '-');
 }
 
-pub fn toString(dest: *String, target: anytype) memory.allocator.Error!void {
+pub fn isEmpty(self: str) bool {
+	slice.isEmpty(u8, self);
+}
+
+pub fn toString(dest: *String, target: anytype) memory.Error!void {
 	const TargetType = @TypeOf(target);
 	const type_info = @typeInfo(TargetType);
 
@@ -133,8 +152,12 @@ pub fn toString(dest: *String, target: anytype) memory.allocator.Error!void {
 		.Int => try intToString(dest, @as(isize, target), 10),
 		.Null => try dest.pushStr("null"),
 		.Pointer => {
-			try intToString(dest, @intCast(isize, @ptrToInt(target)), 16);
-			try dest.pushStrFront("0x");
+			if (@typeInfo(type_info.Pointer.child) == .Array) {
+				try toString(dest, type_info.child);
+			} else {
+				try intToString(dest, @intCast(isize, @ptrToInt(&target)), 16);
+				try dest.insert(0, "0x");
+			}
 		},
 		.Struct => @panic("Not implemented yet"), // TODO
 		.Type => try dest.pushStr(@typeName(target)),
@@ -143,4 +166,8 @@ pub fn toString(dest: *String, target: anytype) memory.allocator.Error!void {
 		.Vector => @panic("Not implemented yet"), // TODO
 		else => @panic("Invalid type, found " ++ @typeName(TargetType))
 	}
+}
+
+pub fn matches(self: str, targets: []const str) bool {
+	return slice.matches(u8, self, targets);
 }
