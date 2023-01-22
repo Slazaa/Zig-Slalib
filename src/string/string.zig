@@ -56,7 +56,9 @@ pub fn init(allocator: ?*const Allocator) Self {
 }
 
 pub fn insert(self: *Self, idx: usize, target: anytype) memory.Error!void {
-	if (idx > self.len) @panic("Index out of bounds");
+	if (idx > self.len) {
+		@panic("Index out of bounds");
+	}
 
 	const TargetType = @TypeOf(target);
 
@@ -88,6 +90,7 @@ pub fn insert(self: *Self, idx: usize, target: anytype) memory.Error!void {
 
 			try self.insert(idx, @as(str, char_utf8[0..utf8.size(char_utf8[0])]));
 		},
+		comptime_int => try self.insert(idx, @as(char, target)),
 		else => {
 			const target_type_info = @typeInfo(TargetType);
 
@@ -105,7 +108,7 @@ pub fn isEmpty(self: *const Self) bool {
 }
 
 pub fn pop(self: *Self) memory.Error!char {
-	return try self.remove(self.len - 1);
+	return self.remove(self.len - 1);
 }
 
 pub fn push(self: *Self, target: anytype) memory.Error!void {
@@ -113,7 +116,9 @@ pub fn push(self: *Self, target: anytype) memory.Error!void {
 }
 
 pub fn remove(self: *Self, idx: usize) char {
-	if (idx > self.len) @panic("Index out of bounds");
+	if (idx > self.len) {
+		@panic("Index out of bounds");
+	}
 
 	var vec_idx: usize = 0;
 	var i: usize = 0;
@@ -139,14 +144,18 @@ pub fn remove(self: *Self, idx: usize) char {
 }
 
 pub fn removen(self: *Self, idx: usize, num: usize) void {
-	if (idx > self.len) @panic("Index out of bounds");
+	if (idx > self.len) {
+		@panic("Index out of bounds");
+	}
 
 	var i: usize = 0;
 	while (i != num) : (i += 1) _ = self.remove(idx);
 }
 
 pub fn removeStr(self: *Self, idx: usize, num: usize) memory.Error!void {
-	if (idx >= self.len or idx + num > self.len) @panic("Index out of range");
+	if (idx >= self.len or idx + num > self.len) {
+		@panic("Index out of range");
+	}
 
 	var i = idx;
 

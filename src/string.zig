@@ -63,7 +63,9 @@ pub fn get(self: str, idx: usize) ?char {
 }
 
 pub fn getStr(self: str, idx: usize, num: usize) ?str {
-	if (idx >= self.len or idx + num > self.len) return null;
+	if (idx >= self.len or idx + num > self.len) {
+		return null;
+	}
 
 	var start_res: usize = 0;
 	var end_res: usize = 0;
@@ -97,8 +99,6 @@ pub fn getStr(self: str, idx: usize, num: usize) ?str {
 }
 
 pub fn intToString(dest: *String, num: isize, base: usize) memory.Error!void {
-	dest.clear();
-
 	var num_val = @intCast(usize, math.abs(num));
 
 	while (num_val != 0) {
@@ -122,48 +122,53 @@ pub fn isEmpty(self: str) bool {
 
 pub fn toString(dest: *String, target: anytype) memory.Error!void {
 	const TargetType = @TypeOf(target);
-	const type_info = @typeInfo(TargetType);
+	const target_type_info = @typeInfo(TargetType);
 
-	switch (type_info) {
-		.Array => {
-			try dest.push('[');
-
-			var res = String.init(null);
-			defer res.deinit();
-
-			for (target) |item| {
-				res.clear();
-
-				try dest.push(' ');
-				try toString(&res, item);
-
-				try dest.pushStr(res.asStr());
-				try dest.push(',');
-			}
-
-			_ = try dest.pop();
-			try dest.pushStr(" ]");
-		},
-		.Bool => try dest.pushStr(if (target) "true" else "false"),
+	switch (target_type_info) {
+		.Array => |info| try toString(dest, @as([]const info.child, &target)),
+		.Bool => try dest.push(if (target) "true" else "false"),
 		.ComptimeFloat,
 		.Float => try floatToString(dest, @as(f64, target), 16, 10),
 		.Enum => @panic("Not implemented yet"), // TODO
 		.ComptimeInt,
 		.Int => try intToString(dest, @as(isize, target), 10),
-		.Null => try dest.pushStr("null"),
-		.Pointer => {
-			if (@typeInfo(type_info.Pointer.child) == .Array) {
-				try toString(dest, type_info.child);
-			} else {
-				try intToString(dest, @intCast(isize, @ptrToInt(&target)), 16);
-				try dest.insert(0, "0x");
+		.NoReturn => try dest.push("no_return"),
+		.Null => try dest.push("null"),
+		.Optional => try toString(dest, target.?),
+		.Pointer => |info| {
+			switch (TargetType) {
+				[]const info.child,
+				[]info.child => {
+					try dest.push('[');
+
+					var res = String.init(null);
+					defer res.deinit();
+
+					for (target) |item| {
+						res.clear();
+
+						try dest.push(' ');
+						try toString(&res, item);
+
+						try dest.push(res.asStr());
+						try dest.push(',');
+					}
+
+					_ = try dest.pop();
+					try dest.push(" ]");
+				},
+				else => {
+					try intToString(dest, @intCast(isize, @ptrToInt(&target)), 16);
+					try dest.insert(0, "0x");
+				}
 			}
 		},
 		.Struct => @panic("Not implemented yet"), // TODO
-		.Type => try dest.pushStr(@typeName(target)),
-		.Undefined => try dest.pushStr("undefined"),
+		.Type => try dest.push(@typeName(target)),
+		.Undefined => try dest.push("undefined"),
 		.Union => @panic("Not implemented yet"), // TODO
 		.Vector => @panic("Not implemented yet"), // TODO
+		.Void => try dest.push("void"),
 		else => @panic("Invalid type, found " ++ @typeName(TargetType))
 	}
 }

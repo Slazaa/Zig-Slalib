@@ -202,7 +202,7 @@ pub fn Vec(comptime T: type) type {
 					if (@typeInfo(T) != .Int) {
 						@panic("Cannot cast comptime_int to " ++ @typeName(T));
 					}
-					
+
 					try self.insert(idx, @as(T, target));
 				},
 				else => {
@@ -272,7 +272,7 @@ pub fn Vec(comptime T: type) type {
 			try self.insert(self.len(), target);
 		}
 
-		/// Removes and returns the element at the given index in the vector, shifting all elements after it to the left.
+		/// Removes and returns the element at `idx` in the vector, shifting all elements after it to the left.
 		///
 		/// # Examples
 		/// ```zig
@@ -293,6 +293,17 @@ pub fn Vec(comptime T: type) type {
 			return elem;
 		}
 
+		/// Removes `num` elements at `idx` in the vector, shifting all elements after it to the left.
+		///
+		/// # Examples
+		/// ```zig
+		/// var vec = try Vec(i32).from(null, &[_]i32{ 1, 2, 3, 4, 5 });
+		/// defer vec.deinit();
+		///
+		/// vec.removen(1, 3);
+		///
+		/// assert(vec.equals(&[_]i32{ 1, 5 }));
+		/// ```
 		pub fn removen(self: *Self, idx: usize, num: usize) void {
 			if (idx >= self.len()) @panic("Index out of bounds");
 
