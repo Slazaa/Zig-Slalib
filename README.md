@@ -10,11 +10,14 @@ For now, Slalib relies libc but in the future it will not depend on anything.
 - [ ] Format
 - [ ] I/O
 	- [ ] File
+	- [ ] Read
 	- [ ] Stdio
+	- [x] Write
 - [x] Math
-- [x] Memory
+- [ ] Memory
 	- [x] Allocator
-	- [x] GlobAlloc
+	- [ ] ArenaAlloc
+	- [x] GeneralAlloc
 - [ ] Network
 	- [ ] Tcp
 	- [ ] Udp

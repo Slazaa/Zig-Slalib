@@ -1,5 +1,5 @@
 //! A contiguous growable array type.
-//! You can provide an allocator through the initaliazing functions, if set `null`, the GlobAlloc will be choosen.
+//! You can provide an allocator through the initaliazing functions, if set `null`, the GeneralAlloc will be choosen.
 //!
 //! # Examples
 //! ```zig
@@ -32,14 +32,14 @@ const memory = @import("../memory.zig");
 const slice = @import("../slice.zig");
 
 const Allocator = memory.Allocator;
-const GlobAlloc = memory.GlobAlloc;
+const GeneralAlloc = memory.GeneralAlloc;
 
 pub fn Vec(comptime T: type) type {
 	return struct {
 		const Self = @This();
 
 		items: []T = &[_]T{ },
-		allocator: *const Allocator = &GlobAlloc.allocator,
+		allocator: *const Allocator = &GeneralAlloc.allocator,
 		capacity: usize = 0,
 
 		/// Clears the vector.

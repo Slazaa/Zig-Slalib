@@ -137,29 +137,37 @@ pub fn toString(dest: *String, target: anytype) memory.Error!void {
 		.Optional => try toString(dest, target.?),
 		.Pointer => |info| {
 			switch (TargetType) {
-				[]const info.child,
-				[]info.child => {
-					try dest.push('[');
+				[]info.child,
+				[]const info.child => {
+					if (info.child == u8) {
+						try dest.push(target);
+					} else {
+						try dest.push('[');
 
-					var res = String.init(null);
-					defer res.deinit();
+						var res = String.init(null);
+						defer res.deinit();
 
-					for (target) |item| {
-						res.clear();
+						for (target) |item| {
+							res.clear();
 
-						try dest.push(' ');
-						try toString(&res, item);
+							try dest.push(' ');
+							try toString(&res, item);
 
-						try dest.push(res.asStr());
-						try dest.push(',');
+							try dest.push(res.asStr());
+							try dest.push(',');
+						}
+
+						_ = try dest.pop();
+						try dest.push(" ]");
 					}
-
-					_ = try dest.pop();
-					try dest.push(" ]");
 				},
 				else => {
-					try intToString(dest, @intCast(isize, @ptrToInt(&target)), 16);
-					try dest.insert(0, "0x");
+					if (@typeInfo(info.child) == .Array and @typeInfo(info.child).Array.child == u8) {
+						try toString(dest, @as(str, target));
+					} else {
+						try intToString(dest, @intCast(isize, @ptrToInt(&target)), 16);
+						try dest.insert(0, "0x");
+					}
 				}
 			}
 		},

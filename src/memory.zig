@@ -1,5 +1,5 @@
 pub const Allocator = @import("memory/allocator.zig");
-pub const GlobAlloc = @import("memory/glob_alloc.zig");
+pub const GeneralAlloc = @import("memory/general_alloc.zig");
 
 const assert_ = @import("assert.zig");
 const collections = @import("collections.zig");
