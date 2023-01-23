@@ -24,13 +24,21 @@ fn checkHints(fmt_string: str) Error!void {
 
 	while (true) {
 		// Check that there is both the opening and the closing braces
-		const open_bracket = string.find(fmt_string[idx..], "{") orelse return
-			if (string.find(fmt_string[idx..], "}") != null) Error.SingleCloseBracket;
+
+		const open_bracket = string.find(fmt_string[idx..], "{") orelse {
+			if (string.find(fmt_string[idx..], "}")) |_| {
+				return Error.SingleCloseBracket;
+			} else {
+				return;
+			}
+		};
 
 		const close_bracket = string.find(fmt_string[idx..], "}") orelse return Error.SingleOpenBracket;
 
 		// Check that the closing bracket is after the opening one
-		if (close_bracket < open_bracket) return Error.SingleCloseBracket;
+		if (close_bracket < open_bracket) {
+			return Error.SingleCloseBracket;
+		}
 
 		// Check that the hint kind is correct
 		if (
@@ -57,7 +65,9 @@ fn findHint(fmt_string: str) ?Hint {
 pub fn format(dest: *String, comptime fmt: str, args: anytype) Error!void {
 	const ArgsType = @TypeOf(args);
 
-	if (@typeInfo(ArgsType) != .Struct) @panic("Expected tuple, found" ++ @typeName(ArgsType));
+	if (@typeInfo(ArgsType) != .Struct) {
+		@compileError("Expected tuple, found" ++ @typeName(ArgsType));
+	}
 
 	comptime checkHints(fmt) catch |e| 
 		@compileError(switch (e) {

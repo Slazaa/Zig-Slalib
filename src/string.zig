@@ -8,8 +8,6 @@ const math = @import("math.zig");
 const memory = @import("memory.zig");
 const slice = @import("slice.zig");
 
-const std = @import("std");
-
 pub fn count(self: str, target: anytype) usize {
 	return slice.count(u8, self, target);
 }
@@ -57,9 +55,11 @@ pub fn floatToString(dest: *String, num: f64, precision: usize, base: usize) mem
 }
 
 pub fn get(self: str, idx: usize) ?char {
-	return
-		if (getStr(self, idx, 1)) |str_res| utf8.decode(str_res)
-		else null;
+	if (getStr(self, idx, 1)) |str_res| {
+		return utf8.decode(str_res);
+	}
+
+	return null;
 }
 
 pub fn getStr(self: str, idx: usize, num: usize) ?str {
@@ -129,7 +129,7 @@ pub fn toString(dest: *String, target: anytype) memory.Error!void {
 		.Bool => try dest.push(if (target) "true" else "false"),
 		.ComptimeFloat,
 		.Float => try floatToString(dest, @as(f64, target), 16, 10),
-		.Enum => @panic("Not implemented yet"), // TODO
+		.Enum => @compileError("Not implemented yet"), // TODO
 		.ComptimeInt,
 		.Int => try intToString(dest, @as(isize, target), 10),
 		.NoReturn => try dest.push("no_return"),
@@ -162,22 +162,16 @@ pub fn toString(dest: *String, target: anytype) memory.Error!void {
 					}
 				},
 				else => {
-					if (@typeInfo(info.child) == .Array and @typeInfo(info.child).Array.child == u8) {
-						try toString(dest, @as(str, target));
-					} else {
-						try intToString(dest, @intCast(isize, @ptrToInt(&target)), 16);
-						try dest.insert(0, "0x");
-					}
+					try intToString(dest, @intCast(isize, @ptrToInt(&target)), 16);
+					try dest.insert(0, "0x");
 				}
 			}
 		},
-		.Struct => @panic("Not implemented yet"), // TODO
+		.Struct => @compileError("Not implemented yet"), // TODO
 		.Type => try dest.push(@typeName(target)),
-		.Undefined => try dest.push("undefined"),
-		.Union => @panic("Not implemented yet"), // TODO
-		.Vector => @panic("Not implemented yet"), // TODO
-		.Void => try dest.push("void"),
-		else => @panic("Invalid type, found " ++ @typeName(TargetType))
+		.Union => @compileError("Not implemented yet"), // TODO
+		.Vector => @compileError("Not implemented yet"), // TODO
+		else => @compileError("Invalid type, found " ++ @typeName(TargetType))
 	}
 }
 

@@ -3,10 +3,12 @@ A anternative for the standard library inspired from the Rust standard library.
 For now, Slalib relies libc but in the future it will not depend on anything.
 
 ## Goals
+- [x] Assert
 - [ ] Collections
 	- [ ] Queue
 	- [ ] Map
 	- [x] Vec
+- [x] Compare
 - [ ] Format
 - [ ] I/O
 	- [ ] File
@@ -21,6 +23,7 @@ For now, Slalib relies libc but in the future it will not depend on anything.
 - [ ] Network
 	- [ ] Tcp
 	- [ ] Udp
+- [x] Slice
 - [x] String
 - [ ] Thread
 - [ ] Time
