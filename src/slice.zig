@@ -91,10 +91,10 @@ pub fn find(comptime T: type, self: []const T, target: anytype) ?usize {
 			const target_type_info = @typeInfo(TargetType);
 
 			if (target_type_info != .Pointer or @typeInfo(target_type_info.Pointer.child) != .Array) {
-				return find(T, self, @as([]const T, target));
+				@compileError("Expected single element or slice of element, found " ++ @typeName(TargetType));
 			}
 
-			@compileError("Expected single element or slice of element, found " ++ @typeName(TargetType));
+			return find(T, self, @as([]const T, target));
 		}
 	}
 
@@ -103,14 +103,4 @@ pub fn find(comptime T: type, self: []const T, target: anytype) ?usize {
 
 pub fn isEmpty(comptime T: type, self: []const T) bool {
 	return self.len == 0;
-}
-
-pub fn matches(comptime T: type, self: []const T, slices: []const []const T) bool {
-	for (slices) |slice| {
-		if (equals(T, self, slice)) {
-			return true;
-		}
-	}
-
-	return false;
 }

@@ -1,11 +1,11 @@
 const collections = @import("../collections.zig");
 const memory = @import("../memory.zig");
-const string_ = @import("../string.zig");
+const string = @import("../string.zig");
 
-const char = string_.char;
-const str = string_.str;
+const char = string.char;
+const str = string.str;
 
-const utf8 = string_.utf8;
+const utf8 = string.utf8;
 
 const Vec = collections.Vec;
 const Allocator = memory.Allocator;
@@ -25,7 +25,7 @@ pub fn clear(self: *Self) void {
 }
 
 pub fn count(self: *Self, target: str) usize {
-	return string_.count(self.asStr(), target);
+	return string.count(self.asStr(), target);
 }
 
 pub fn deinit(self: *Self) void {
@@ -33,22 +33,22 @@ pub fn deinit(self: *Self) void {
 }
 
 pub fn find(self: *const Self, target: str) ?usize {
-	return string_.find(self.asStr(), target);
+	return string.find(self.asStr(), target);
 }
 
-pub fn from(allocator: ?Allocator, string: string_.str) memory.allocator.Error!Self {
+pub fn from(allocator: ?Allocator, target: str) memory.allocator.Error!Self {
 	return .{
-		.vec = try Vec(u8).from(allocator, string),
-		.len = string.len
+		.vec = try Vec(u8).from(allocator, target),
+		.len = target.len
 	};
 }
 
 pub fn get(self: *const Self, idx: usize) ?char {
-	return string_.get(self.asStr(), idx);
+	return string.get(self.asStr(), idx);
 }
 
 pub fn getStr(self: *const Self, idx: usize, num: usize) ?str {
-	return string_.getStr(self.asStr(), idx, num);
+	return string.getStr(self.asStr(), idx, num);
 }
 
 pub fn init(allocator: ?*const Allocator) Self {
@@ -104,7 +104,7 @@ pub fn insert(self: *Self, idx: usize, target: anytype) memory.Error!void {
 }
 
 pub fn isEmpty(self: *const Self) bool {
-	return string_.isEmpty(self.asStr());
+	return string.isEmpty(self.asStr());
 }
 
 pub fn pop(self: *Self) memory.Error!char {
@@ -149,7 +149,10 @@ pub fn removen(self: *Self, idx: usize, num: usize) void {
 	}
 
 	var i: usize = 0;
-	while (i != num) : (i += 1) _ = self.remove(idx);
+
+	while (i != num) : (i += 1) {
+		_ = self.remove(idx);
+	}
 }
 
 pub fn removeStr(self: *Self, idx: usize, num: usize) memory.Error!void {
@@ -164,19 +167,21 @@ pub fn removeStr(self: *Self, idx: usize, num: usize) memory.Error!void {
 	}
 }
 
-pub fn replace(self: *Self, string: str, to: str) memory.Error!void {
-	try self.replacen(string, to, string_.count(self.asStr(), string));
+pub fn replace(self: *Self, target: str, to: str) memory.Error!void {
+	try self.replacen(target, to, string.count(self.asStr(), target));
 }
 
-pub fn replacen(self: *Self, string: str, to: str, num: usize) memory.Error!void {
+pub fn replacen(self: *Self, target: str, to: str, num: usize) memory.Error!void {
 	var idx: usize = 0;
 	var i: usize = 0;
 
 	while (i < num) : (i += 1) {
-		if (string_.find(self.asStr()[idx..], string)) |string_idx| {
+		if (string.find(self.asStr()[idx..], target)) |string_idx| {
 			idx += string_idx;
-			try self.removeStr(idx, string.len);
+
+			try self.removeStr(idx, target.len);
 			try self.insertStr(idx, to);
+
 			idx += to.len;
 		} else {
 			break;

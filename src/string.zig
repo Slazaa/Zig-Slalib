@@ -8,6 +8,8 @@ const math = @import("math.zig");
 const memory = @import("memory.zig");
 const slice = @import("slice.zig");
 
+const std = @import("std");
+
 pub fn count(self: str, target: anytype) usize {
 	return slice.count(u8, self, target);
 }
@@ -139,31 +141,38 @@ pub fn toString(dest: *String, target: anytype) memory.Error!void {
 			switch (TargetType) {
 				[]info.child,
 				[]const info.child => {
-					if (info.child == u8) {
-						try dest.push(target);
-					} else {
-						try dest.push('[');
+					switch (info.child) {
+						u8 => try dest.push(target),
+						else => {
+							try dest.push('[');
 
-						var res = String.init(null);
-						defer res.deinit();
+							var res = String.init(null);
+							defer res.deinit();
 
-						for (target) |item| {
-							res.clear();
+							for (target) |item| {
+								res.clear();
 
-							try dest.push(' ');
-							try toString(&res, item);
+								try dest.push(' ');
+								try toString(&res, item);
 
-							try dest.push(res.asStr());
-							try dest.push(',');
+								try dest.push(res.asStr());
+								try dest.push(',');
+							}
+
+							_ = try dest.pop();
+							try dest.push(" ]");
 						}
-
-						_ = try dest.pop();
-						try dest.push(" ]");
 					}
 				},
 				else => {
-					try intToString(dest, @intCast(isize, @ptrToInt(&target)), 16);
-					try dest.insert(0, "0x");
+					const array_type_info = @typeInfo(info.child);
+
+					if (array_type_info == .Array) {
+						try toString(dest, @as([]const array_type_info.Array.child, target));
+					} else {
+						try intToString(dest, @intCast(isize, @ptrToInt(&target)), 16);
+						try dest.insert(0, "0x");
+					}
 				}
 			}
 		},
@@ -173,8 +182,4 @@ pub fn toString(dest: *String, target: anytype) memory.Error!void {
 		.Vector => @compileError("Not implemented yet"), // TODO
 		else => @compileError("Invalid type, found " ++ @typeName(TargetType))
 	}
-}
-
-pub fn matches(self: str, targets: []const str) bool {
-	return slice.matches(u8, self, targets);
 }

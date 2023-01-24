@@ -8,6 +8,8 @@ const str = string.str;
 const Allocator = memory.Allocator;
 const String = string.String;
 
+const std = @import("std");
+
 pub const Error = memory.Error || error {
 	SingleOpenBracket,
 	SingleCloseBracket,
@@ -19,17 +21,18 @@ const Hint = struct {
 	alt: bool
 };
 
-fn checkHints(fmt_string: str) Error!void {
+fn checkHints(fmt_string: str) Error!usize {
+	var count: usize = 0;
 	var idx: usize = 0;
 
-	while (true) {
+	while (true) : (count += 1) {
 		// Check that there is both the opening and the closing braces
 
 		const open_bracket = string.find(fmt_string[idx..], "{") orelse {
 			if (string.find(fmt_string[idx..], "}")) |_| {
 				return Error.SingleCloseBracket;
 			} else {
-				return;
+				return count;
 			}
 		};
 
@@ -43,7 +46,7 @@ fn checkHints(fmt_string: str) Error!void {
 		// Check that the hint kind is correct
 		if (
 			open_bracket + 1 != close_bracket and
-			!string.equals(fmt_string[idx + open_bracket + 1..close_bracket], ".")
+			!string.equals(fmt_string[idx + open_bracket + 1..close_bracket], "#")
 		) {
 			return Error.InvalidKind;
 		}
@@ -66,16 +69,20 @@ pub fn format(dest: *String, comptime fmt: str, args: anytype) Error!void {
 	const ArgsType = @TypeOf(args);
 
 	if (@typeInfo(ArgsType) != .Struct) {
-		@compileError("Expected tuple, found" ++ @typeName(ArgsType));
+		@compileError("Expected tuple, found " ++ @typeName(ArgsType));
 	}
 
-	comptime checkHints(fmt) catch |e| 
+	const hint_count = comptime checkHints(fmt) catch |e| 
 		@compileError(switch (e) {
 			Error.SingleOpenBracket => "Expected '}' after '{'",
 			Error.SingleCloseBracket => "Expected '{' before '}'",
 			Error.InvalidKind => "Invalid format kind",
 			else => unreachable
 		});
+
+	if (hint_count != args.len) {
+		@compileError("Invalid number of arguments");
+	}
 
 	try dest.push(fmt);
 
@@ -86,11 +93,22 @@ pub fn format(dest: *String, comptime fmt: str, args: anytype) Error!void {
 			var tmp = String.init(null);
 			defer tmp.deinit();
 
-			try string.toString(&tmp, arg);
+			const ArgType = @TypeOf(arg);
+			const arg_type_info = @typeInfo(ArgType);
+
+			if (!hint.alt) {
+				switch (ArgType) {
+					char, comptime_int, str => try tmp.push(arg),
+					else => try string.toString(&tmp, arg)
+				}
+			} else {
+				switch (arg_type_info) {
+					.ComptimeInt, .Int => try string.toString(&tmp, arg),
+					else => @panic("Expected int for alt hint, found " ++ @typeName(ArgType))
+				}
+			}
 
 			try dest.insert(hint.idx, tmp.asStr());
-		} else {
-			unreachable;
 		}
 	}
 }

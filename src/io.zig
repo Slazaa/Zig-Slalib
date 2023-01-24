@@ -25,7 +25,3 @@ pub fn print(comptime fmt: str, args: anytype) Error!void {
 	const stdio = Stdio { };
 	try stdio.write.write(tmp.asStr());
 }
-
-pub fn println(comptime fmt: str, args: anytype) Error!void {
-	try print(fmt ++ "\n", args);
-}
