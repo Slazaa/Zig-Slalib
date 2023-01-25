@@ -27,7 +27,6 @@ fn checkHints(fmt_string: str) Error!usize {
 
 	while (true) : (count += 1) {
 		// Check that there is both the opening and the closing braces
-
 		const open_bracket = string.find(fmt_string[idx..], "{") orelse {
 			if (string.find(fmt_string[idx..], "}")) |_| {
 				return Error.SingleCloseBracket;
@@ -99,11 +98,11 @@ pub fn format(dest: *String, comptime fmt: str, args: anytype) Error!void {
 			if (!hint.alt) {
 				switch (ArgType) {
 					char, comptime_int, str => try tmp.push(arg),
-					else => try string.toString(&tmp, arg)
+					else => try string.String.toString(&tmp, arg)
 				}
 			} else {
 				switch (arg_type_info) {
-					.ComptimeInt, .Int => try string.toString(&tmp, arg),
+					.ComptimeInt, .Int => try string.String.toString(&tmp, arg),
 					else => @panic("Expected int for alt hint, found " ++ @typeName(ArgType))
 				}
 			}

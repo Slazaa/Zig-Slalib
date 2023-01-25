@@ -1,4 +1,5 @@
 const collections = @import("../collections.zig");
+const math = @import("../math.zig");
 const memory = @import("../memory.zig");
 const string = @import("../string.zig");
 
@@ -34,6 +35,40 @@ pub fn deinit(self: *Self) void {
 
 pub fn find(self: *const Self, target: str) ?usize {
 	return string.find(self.asStr(), target);
+}
+
+pub fn floatToString(dest: *Self, num: f64, precision: usize, base: usize) memory.Error!void {
+	dest.clear();
+
+	var num_val = @floatToInt(usize, math.abs(num) * math.pow.pow(@as(f64, 10), @intToFloat(f64, precision)));
+	var foundNonZero = false;
+	var i: usize = 0;
+
+	while (num_val != 0) : (i += 1) {
+		var ch = @truncate(char, num_val % base);
+
+		if (!foundNonZero and ch != 0) {
+			foundNonZero = true;
+		} else if (foundNonZero) {
+			ch += switch (ch) {
+				0...9 => 48,
+				10...35 => 65 - 10,
+				else => 0
+			};
+
+			if (i == precision) {
+				try dest.pushFront('.');
+			}
+
+			try dest.pushFront(ch);
+		}
+
+		num_val /= base;
+	}
+
+	if (num < 0) {
+		try dest.pushFront('-');
+	}
 }
 
 pub fn from(allocator: ?Allocator, target: str) memory.allocator.Error!Self {
@@ -101,6 +136,24 @@ pub fn insert(self: *Self, idx: usize, target: anytype) memory.Error!void {
 			}
 		}
 	}
+}
+
+pub fn intToString(dest: *Self, num: isize, base: usize) memory.Error!void {
+	var num_val = @intCast(usize, math.abs(num));
+
+	while (num_val != 0) {
+		var ch = @truncate(char, num_val % base);
+		ch += switch (ch) {
+			0...9 => 48,
+			10...35 => 65 - 10,
+			else => 0
+		};
+
+		try dest.insert(0, ch);
+		num_val /= base;
+	}
+
+	if (num < 0) try dest.insert(0, '-');
 }
 
 pub fn isEmpty(self: *const Self) bool {
@@ -186,5 +239,67 @@ pub fn replacen(self: *Self, target: str, to: str, num: usize) memory.Error!void
 		} else {
 			break;
 		}
+	}
+}
+
+pub fn toString(dest: *Self, target: anytype) memory.Error!void {
+	const TargetType = @TypeOf(target);
+	const target_type_info = @typeInfo(TargetType);
+
+	switch (target_type_info) {
+		.Array => |info| try toString(dest, @as([]const info.child, &target)),
+		.Bool => try dest.push(if (target) "true" else "false"),
+		.ComptimeFloat,
+		.Float => try Self.floatToString(dest, @as(f64, target), 16, 10),
+		.Enum => @compileError("Not implemented yet"), // TODO
+		.ComptimeInt,
+		.Int => try Self.intToString(dest, @as(isize, target), 10),
+		.NoReturn => try dest.push("no_return"),
+		.Null => try dest.push("null"),
+		.Optional => try Self.toString(dest, target.?),
+		.Pointer => |info| {
+			switch (TargetType) {
+				[]info.child,
+				[]const info.child => {
+					switch (info.child) {
+						u8 => try dest.push(target),
+						else => {
+							try dest.push('[');
+
+							var res = Self.init(null);
+							defer res.deinit();
+
+							for (target) |item| {
+								res.clear();
+
+								try dest.push(' ');
+								try toString(&res, item);
+
+								try dest.push(res.asStr());
+								try dest.push(',');
+							}
+
+							_ = try dest.pop();
+							try dest.push(" ]");
+						}
+					}
+				},
+				else => {
+					const array_type_info = @typeInfo(info.child);
+
+					if (array_type_info == .Array) {
+						try toString(dest, @as([]const array_type_info.Array.child, target));
+					} else {
+						try intToString(dest, @intCast(isize, @ptrToInt(&target)), 16);
+						try dest.insert(0, "0x");
+					}
+				}
+			}
+		},
+		.Struct => @compileError("Not implemented yet"), // TODO
+		.Type => try dest.push(@typeName(target)),
+		.Union => @compileError("Not implemented yet"), // TODO
+		.Vector => @compileError("Not implemented yet"), // TODO
+		else => @compileError("Invalid type, found " ++ @typeName(TargetType))
 	}
 }
