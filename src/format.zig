@@ -10,7 +10,7 @@ const String = string.String;
 
 const std = @import("std");
 
-pub const Error = memory.Error || error {
+pub const Error = string.Error || error {
 	SingleOpenBracket,
 	SingleCloseBracket,
 	InvalidKind
@@ -87,7 +87,7 @@ pub fn format(dest: *String, comptime fmt: str, args: anytype) Error!void {
 
 	inline for (args) |arg| {
 		if (findHint(fmt)) |hint| {
-			dest.removen(hint.idx, if (hint.alt) 3 else 2);
+			try dest.removen(hint.idx, if (hint.alt) 3 else 2);
 
 			var tmp = String.init(null);
 			defer tmp.deinit();

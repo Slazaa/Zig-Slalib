@@ -17,7 +17,7 @@ write: Write = .{
 	.writeFn = writeFn
 },
 
-fn readFn(iface: *const Read, buffer: []u8) Error!void {
+fn readFn(iface: *const Read, buffer: []u8) Error!usize {
 	_ = iface;
 
 	switch (bultin.os.tag) {
@@ -26,17 +26,19 @@ fn readFn(iface: *const Read, buffer: []u8) Error!void {
 				@cInclude("windows.h");
 			});
 
-			const std_out = windows.GetStdHandle(windows.STD_OUTPUT_HANDLE);
+			const stdin = windows.GetStdHandle(windows.STD_INPUT_HANDLE);
 
-			if (std_out == null or std_out == windows.INVALID_HANDLE_VALUE) {
+			if (stdin == null or stdin == windows.INVALID_HANDLE_VALUE) {
 				return Error.ReadingFailed;
 			}
 
-			var readNum: u32 = 0;
+			var readNum: c_ulong = 0;
 
-			if (windows.ReadConsoleA(std_out, buffer.ptr, @intCast(c_ulong, buffer.len), &readNum, null) == 0) {
+			if (windows.ReadConsoleA(stdin, buffer.ptr, @intCast(c_ulong, buffer.len), &readNum, null) == 0) {
 				return Error.ReadingFailed;
 			}
+
+			return readNum;
 		},
 		else => @compileError("OS not supported")
 	}
@@ -51,15 +53,15 @@ fn writeFn(iface: *const Write, buffer: []const u8) Error!void {
 				@cInclude("windows.h");
 			});
 
-			const std_out = windows.GetStdHandle(windows.STD_OUTPUT_HANDLE);
+			const stdout = windows.GetStdHandle(windows.STD_OUTPUT_HANDLE);
 
-			if (std_out == null or std_out == windows.INVALID_HANDLE_VALUE) {
+			if (stdout == null or stdout == windows.INVALID_HANDLE_VALUE) {
 				return Error.WritingFailed;
 			}
 
-			var written: u32 = 0;
+			var written: c_ulong = 0;
 
-			if (windows.WriteConsoleA(std_out, buffer.ptr, @intCast(c_ulong, buffer.len), &written, null) == 0) {
+			if (windows.WriteConsoleA(stdout, buffer.ptr, @intCast(c_ulong, buffer.len), &written, null) == 0) {
 				return Error.WritingFailed;
 			}
 		},

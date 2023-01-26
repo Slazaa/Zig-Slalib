@@ -4,10 +4,15 @@ pub const str = []const u8;
 pub const String = @import("string/string.zig");
 pub const utf8 = @import("string/utf8.zig");
 
+const collections = @import("collections.zig");
 const memory = @import("memory.zig");
 const slice = @import("slice.zig");
 
-const std = @import("std");
+pub const Error = collections.Error;
+
+pub fn contains(self: str, target: anytype) bool {
+	return find(self, target) != null;
+}
 
 pub fn count(self: str, target: anytype) usize {
 	return slice.count(u8, self, target);

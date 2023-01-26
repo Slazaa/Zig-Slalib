@@ -36,7 +36,7 @@ pub fn compare(comptime T: type, first: []const T, second: [] const T, size: usi
 	return .Equal;
 }
 
-pub fn move(comptime T: type, dest: []T, src: []const T, size: usize) Error!void {
+pub fn move(comptime T: type, dest: []T, src: []const T, size: usize) collections.Error!void {
 	var tmp = try Vec(T).from(null, src[0..size]);
 	defer tmp.deinit();
 

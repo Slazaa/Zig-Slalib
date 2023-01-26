@@ -17,11 +17,23 @@ pub const Error = format.Error || error {
 	WritingFailed
 };
 
+pub fn input(dest: *String) Error!void {
+	var buffer: [100]u8 = undefined;
+	var readNum = try stdio.read.read(&buffer);
+
+	while (readNum == buffer.len) {
+		try dest.push(&buffer);
+		readNum = try stdio.read.read(&buffer);
+	}
+
+	try dest.push(buffer[0..readNum]);
+	dest.trimEnd();
+}
+
 pub fn print(comptime fmt: str, args: anytype) Error!void {
 	var tmp = String.init(null);
 	defer tmp.deinit();
 
 	try format.format(&tmp, fmt, args);
-
 	try stdio.write.write(tmp.asStr());
 }

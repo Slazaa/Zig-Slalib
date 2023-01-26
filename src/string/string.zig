@@ -10,6 +10,7 @@ const utf8 = string.utf8;
 
 const Vec = collections.Vec;
 const Allocator = memory.Allocator;
+const Error = string.Error;
 
 const Self = @This();
 
@@ -37,7 +38,7 @@ pub fn find(self: *const Self, target: str) ?usize {
 	return string.find(self.asStr(), target);
 }
 
-pub fn floatToString(dest: *Self, num: f64, precision: usize, base: usize) memory.Error!void {
+pub fn floatToString(dest: *Self, num: f64, precision: usize, base: usize) Error!void {
 	dest.clear();
 
 	var num_val = @floatToInt(usize, math.abs(num) * math.pow.pow(@as(f64, 10), @intToFloat(f64, precision)));
@@ -71,7 +72,7 @@ pub fn floatToString(dest: *Self, num: f64, precision: usize, base: usize) memor
 	}
 }
 
-pub fn from(allocator: ?Allocator, target: str) memory.allocator.Error!Self {
+pub fn from(allocator: ?Allocator, target: str) Error!Self {
 	return .{
 		.vec = try Vec(u8).from(allocator, target),
 		.len = target.len
@@ -90,14 +91,15 @@ pub fn init(allocator: ?*const Allocator) Self {
 	return .{ .vec = Vec(u8).init(allocator) };
 }
 
-pub fn insert(self: *Self, idx: usize, target: anytype) memory.Error!void {
+pub fn insert(self: *Self, idx: usize, target: anytype) Error!void {
 	if (idx > self.len) {
-		@panic("Index out of bounds");
+		return Error.IndexOutOfBounds;
 	}
 
 	const TargetType = @TypeOf(target);
 
 	switch (TargetType) {
+		[]u8,
 		str => {
 			var vec_idx: usize = 0;
 			var i: usize = 0;
@@ -132,13 +134,13 @@ pub fn insert(self: *Self, idx: usize, target: anytype) memory.Error!void {
 			if (target_type_info == .Pointer and @typeInfo(target_type_info.Pointer.child) == .Array) {
 				try self.insert(idx, @as(str, target));
 			} else {
-				@panic("Expected string or char, found " ++ @typeName(TargetType));
+				@compileError("Expected string or char, found " ++ @typeName(TargetType));
 			}
 		}
 	}
 }
 
-pub fn intToString(dest: *Self, num: isize, base: usize) memory.Error!void {
+pub fn intToString(dest: *Self, num: isize, base: usize) Error!void {
 	var num_val = @intCast(usize, math.abs(num));
 
 	while (num_val != 0) {
@@ -160,17 +162,25 @@ pub fn isEmpty(self: *const Self) bool {
 	return string.isEmpty(self.asStr());
 }
 
-pub fn pop(self: *Self) memory.Error!char {
-	return self.remove(self.len - 1);
+pub fn last(self: *const Self) ?char {
+	return self.get(self.len - 1);
 }
 
-pub fn push(self: *Self, target: anytype) memory.Error!void {
+pub fn pop(self: *Self) ?char {
+	if (self.len == 0) {
+		return null;
+	}
+
+	return self.remove(self.len - 1) catch unreachable;
+}
+
+pub fn push(self: *Self, target: anytype) Error!void {
 	try self.insert(self.len, target);
 }
 
-pub fn remove(self: *Self, idx: usize) char {
+pub fn remove(self: *Self, idx: usize) Error!char {
 	if (idx > self.len) {
-		@panic("Index out of bounds");
+		return Error.IndexOutOfBounds;
 	}
 
 	var vec_idx: usize = 0;
@@ -184,7 +194,7 @@ pub fn remove(self: *Self, idx: usize) char {
 			var j: usize = vec_char_size;
 
 			while (j != 0) : (j -= 1) {
-				_ = self.vec.remove(vec_idx);
+				_ = try self.vec.remove(vec_idx);
 			}
 
 			self.len -= 1;
@@ -196,21 +206,21 @@ pub fn remove(self: *Self, idx: usize) char {
 	}
 }
 
-pub fn removen(self: *Self, idx: usize, num: usize) void {
+pub fn removen(self: *Self, idx: usize, num: usize) Error!void {
 	if (idx > self.len) {
-		@panic("Index out of bounds");
+		return Error.IndexOutOfBounds;
 	}
 
 	var i: usize = 0;
 
 	while (i != num) : (i += 1) {
-		_ = self.remove(idx);
+		_ = try self.remove(idx);
 	}
 }
 
-pub fn removeStr(self: *Self, idx: usize, num: usize) memory.Error!void {
+pub fn removeStr(self: *Self, idx: usize, num: usize) Error!void {
 	if (idx >= self.len or idx + num > self.len) {
-		@panic("Index out of range");
+		return Error.IndexOutOfBounds;
 	}
 
 	var i = idx;
@@ -220,11 +230,11 @@ pub fn removeStr(self: *Self, idx: usize, num: usize) memory.Error!void {
 	}
 }
 
-pub fn replace(self: *Self, target: str, to: str) memory.Error!void {
+pub fn replace(self: *Self, target: str, to: str) Error!void {
 	try self.replacen(target, to, string.count(self.asStr(), target));
 }
 
-pub fn replacen(self: *Self, target: str, to: str, num: usize) memory.Error!void {
+pub fn replacen(self: *Self, target: str, to: str, num: usize) Error!void {
 	var idx: usize = 0;
 	var i: usize = 0;
 
@@ -242,7 +252,7 @@ pub fn replacen(self: *Self, target: str, to: str, num: usize) memory.Error!void
 	}
 }
 
-pub fn toString(dest: *Self, target: anytype) memory.Error!void {
+pub fn toString(dest: *Self, target: anytype) Error!void {
 	const TargetType = @TypeOf(target);
 	const target_type_info = @typeInfo(TargetType);
 
@@ -301,5 +311,13 @@ pub fn toString(dest: *Self, target: anytype) memory.Error!void {
 		.Union => @compileError("Not implemented yet"), // TODO
 		.Vector => @compileError("Not implemented yet"), // TODO
 		else => @compileError("Invalid type, found " ++ @typeName(TargetType))
+	}
+}
+
+pub fn trimEnd(self: *Self) void {
+	while (self.last()) |ch| {
+		if (string.contains(" \n\t\r", ch)) {
+			_ = self.pop();
+		}
 	}
 }

@@ -31,6 +31,7 @@ const collections = @import("../collections.zig");
 const memory = @import("../memory.zig");
 const slice = @import("../slice.zig");
 
+const Error = collections.Error;
 const Allocator = memory.Allocator;
 const GeneralAlloc = memory.GeneralAlloc;
 
@@ -70,7 +71,7 @@ pub fn Vec(comptime T: type) type {
 		///
 		/// assert(vec.equals(cloned.items));
 		/// ```
-		pub fn clone(self: *const Self) memory.Error!Self {
+		pub fn clone(self: *const Self) Error!Self {
 			return Self.from(null, self.items);
 		}
 
@@ -142,7 +143,7 @@ pub fn Vec(comptime T: type) type {
 		///
 		/// assert(vec.equals(&[_]i32{ 1, 2, 3 }));
 		/// ```
-		pub fn from(allocator: ?*const Allocator, target: []const T) memory.Error!Self {
+		pub fn from(allocator: ?*const Allocator, target: []const T) Error!Self {
 			var self = try Self.withCapacity(allocator, target.len);
 			self.items.len = self.capacity;
 			
@@ -178,13 +179,13 @@ pub fn Vec(comptime T: type) type {
 		///
 		/// assert(vec.equals(&[_]i32{ 1, 2, 3, 4, 5 }));
 		/// ```
-		pub fn insert(self: *Self, idx: usize, target: anytype) memory.Error!void {
+		pub fn insert(self: *Self, idx: usize, target: anytype) Error!void {
 			const TargetType = @TypeOf(target);
 
 			switch (TargetType) {
 				[]const T => {
 					if (idx > self.len()) {
-						@panic("Index out of bounds");
+						return Error.IndexOutOfBounds;
 					}
 
 					if (self.capacity < self.len() + target.len) {
@@ -259,8 +260,12 @@ pub fn Vec(comptime T: type) type {
 		/// assert(vec.pop() == 3);
 		/// assert(vec.equals(&[_]i32{ 1, 2 }));
 		/// ```
-		pub fn pop(self: *Self) T {
-			return self.remove(self.len() - 1);
+		pub fn pop(self: *Self) ?T {
+			if (self.len == 0) {
+				return null;
+			}
+
+			return self.remove(self.len() - 1) catch unreachable;
 		}
 
 		/// Appends an element or a slice to the back of the vector.
@@ -274,7 +279,7 @@ pub fn Vec(comptime T: type) type {
 		///
 		/// assert(vec.equals(&[_]i32{ 1, 2, 3 }));
 		/// ```
-		pub fn push(self: *Self, target: anytype) memory.Error!void {
+		pub fn push(self: *Self, target: anytype) Error!void {
 			try self.insert(self.len(), target);
 		}
 
@@ -288,9 +293,9 @@ pub fn Vec(comptime T: type) type {
 		/// assert(vec.remove(1) == 2);
 		/// assert(vec.equals(&[_]i32{ 1, 3 }));
 		/// ```
-		pub fn remove(self:* Self, idx: usize) T {
+		pub fn remove(self:* Self, idx: usize) Error!T {
 			if (idx >= self.len()) {
-				@panic("Index out of bounds");
+				return Error.IndexOutOfBounds;
 			}
 
 			var elem = self.items[idx];
@@ -312,9 +317,9 @@ pub fn Vec(comptime T: type) type {
 		///
 		/// assert(vec.equals(&[_]i32{ 1, 5 }));
 		/// ```
-		pub fn removen(self: *Self, idx: usize, num: usize) void {
+		pub fn removen(self: *Self, idx: usize, num: usize) Error!void {
 			if (idx >= self.len()) {
-				@panic("Index out of bounds");
+				return Error.IndexOutOfBounds;
 			}
 
 			var i: usize = 0;
@@ -333,7 +338,7 @@ pub fn Vec(comptime T: type) type {
 		///
 		/// assert(vec.equals(&[_]i32{ 1, 2, 3, 4, 5 }));
 		/// ```
-		pub fn replace(self: *Self, target: []const T, to: anytype) memory.Error!void {
+		pub fn replace(self: *Self, target: []const T, to: anytype) Error!void {
 			try self.replacen(target, to, self.count(target));
 		}
 
@@ -349,7 +354,7 @@ pub fn Vec(comptime T: type) type {
 		///
 		/// assert(vec.equals(&[_]i32{ 1, 2, 3, 4, 5 }));
 		/// ```
-		pub fn replacen(self: *Self, target: []const T, to: anytype, num: usize) memory.Error!void {
+		pub fn replacen(self: *Self, target: []const T, to: anytype, num: usize) Error!void {
 			if (num == 0) {
 				return;
 			}
@@ -416,7 +421,7 @@ pub fn Vec(comptime T: type) type {
 		///
 		/// assert(vec.capacity == 11);
 		/// ```
-		pub fn reserve(self: *Self, additional: usize) memory.Error!void {
+		pub fn reserve(self: *Self, additional: usize) Error!void {
 			if (additional == 0) {
 				return;
 			}
@@ -441,7 +446,7 @@ pub fn Vec(comptime T: type) type {
 		///
 		/// assert(vec.capacity == 10);
 		/// ```
-		pub fn withCapacity(allocator: ?*const Allocator, cap: usize) memory.Error!Self {
+		pub fn withCapacity(allocator: ?*const Allocator, cap: usize) Error!Self {
 			var self = Self.init(allocator);
 			try self.reserve(cap);
 

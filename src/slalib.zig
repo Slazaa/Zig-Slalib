@@ -16,5 +16,5 @@ pub const Vec = collections.Vec;
 
 pub const format = @import("format.zig").format;
 
+pub const input = io.input;
 pub const print = io.print;
-pub const println = io.println;
