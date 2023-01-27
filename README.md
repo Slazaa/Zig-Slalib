@@ -12,8 +12,8 @@ For now, Slalib relies libc but in the future it will not depend on anything.
 - [ ] Format
 - [ ] I/O
 	- [ ] File
-	- [ ] Read
-	- [ ] Stdio
+	- [x] Read
+	- [x] Stdio
 	- [x] Write
 - [x] Math
 - [ ] Memory

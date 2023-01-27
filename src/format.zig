@@ -15,9 +15,15 @@ pub const Error = string.Error || error {
 	InvalidKind
 };
 
+const HintKind = enum {
+	none,
+	alt
+};
+
 const Hint = struct {
 	idx: usize,
-	alt: bool
+	kind: HintKind,
+	len: usize
 };
 
 fn checkHints(fmt_string: str) Error!usize {
@@ -54,9 +60,12 @@ fn findHint(fmt_string: str) ?Hint {
 	const open_bracket = string.find(fmt_string, "{") orelse return null;
 	const close_bracket = string.find(fmt_string, "}") orelse unreachable;
 
+	const kind: HintKind = if (open_bracket + 1 == close_bracket) .none else .alt;
+
 	return .{
 		.idx = open_bracket,
-		.alt = open_bracket + 1 != close_bracket
+		.kind = kind,
+		.len = if (kind == .none) 2 else 3
 	};
 } 
 
@@ -83,7 +92,7 @@ pub fn format(dest: *String, comptime fmt: str, args: anytype) Error!void {
 
 	inline for (args) |arg| {
 		if (findHint(fmt)) |hint| {
-			try dest.removen(hint.idx, if (hint.alt) 3 else 2);
+			try dest.removen(hint.idx, hint.len);
 
 			var tmp = String.init(null);
 			defer tmp.deinit();
@@ -91,15 +100,15 @@ pub fn format(dest: *String, comptime fmt: str, args: anytype) Error!void {
 			const ArgType = @TypeOf(arg);
 			const arg_type_info = @typeInfo(ArgType);
 
-			if (!hint.alt) {
+			if (hint.kind == .none) {
 				switch (ArgType) {
 					char, comptime_int, str => try tmp.push(arg),
 					else => try string.String.toString(&tmp, arg)
 				}
-			} else {
+			} else if (hint.kind == .alt) {
 				switch (arg_type_info) {
 					.ComptimeInt, .Int => try string.String.toString(&tmp, arg),
-					else => @panic("Expected int for alt hint, found " ++ @typeName(ArgType))
+					else => @compileError("Expected int for alt hint, found " ++ @typeName(ArgType))
 				}
 			}
 
