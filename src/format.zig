@@ -7,8 +7,7 @@ const str = string.str;
 
 const Allocator = memory.Allocator;
 const String = string.String;
-
-const std = @import("std");
+const utf8 = string.utf8;
 
 pub const Error = string.Error || error {
 	SingleOpenBracket,
@@ -26,7 +25,6 @@ fn checkHints(fmt_string: str) Error!usize {
 	var idx: usize = 0;
 
 	while (true) : (count += 1) {
-		// Check that there is both the opening and the closing braces
 		const open_bracket = string.find(fmt_string[idx..], "{") orelse {
 			if (string.find(fmt_string[idx..], "}")) |_| {
 				return Error.SingleCloseBracket;
@@ -37,12 +35,10 @@ fn checkHints(fmt_string: str) Error!usize {
 
 		const close_bracket = string.find(fmt_string[idx..], "}") orelse return Error.SingleOpenBracket;
 
-		// Check that the closing bracket is after the opening one
 		if (close_bracket < open_bracket) {
 			return Error.SingleCloseBracket;
 		}
 
-		// Check that the hint kind is correct
 		if (
 			open_bracket + 1 != close_bracket and
 			!string.equals(fmt_string[idx + open_bracket + 1..close_bracket], "#")

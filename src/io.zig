@@ -18,7 +18,7 @@ pub const Error = format.Error || error {
 };
 
 pub fn input(dest: *String) Error!void {
-	var buffer: [100]u8 = undefined;
+	var buffer: [2]u8 = undefined;
 	var readNum = try stdio.read.read(&buffer);
 
 	while (readNum == buffer.len) {

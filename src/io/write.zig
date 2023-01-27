@@ -9,7 +9,7 @@ const Allocator = memory.Allocator;
 pub const Write = struct {
 	const Self = @This();
 
-	writeFn: *const fn(self: *const Self, buffer: []const u8) Error!void,
+	writeFn: *const fn (self: *const Self, buffer: []const u8) Error!void,
 
 	pub fn write(self: *const Self, buffer: []const u8) Error!void {
 		return self.writeFn(self, buffer);

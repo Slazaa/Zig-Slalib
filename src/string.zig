@@ -1,14 +1,17 @@
 pub const char = u21;
 pub const str = []const u8;
 
-pub const String = @import("string/string.zig");
+pub const String = @import("string/String.zig");
+pub const StringIter = @import("string/StringIter.zig");
 pub const utf8 = @import("string/utf8.zig");
 
 const collections = @import("collections.zig");
 const memory = @import("memory.zig");
 const slice = @import("slice.zig");
 
-pub const Error = collections.Error;
+pub const Error = collections.Error || error {
+	BufferNotLargeEnough
+};
 
 pub fn contains(self: str, target: anytype) bool {
 	return find(self, target) != null;
@@ -72,4 +75,22 @@ pub fn getStr(self: str, idx: usize, num: usize) ?str {
 
 pub fn isEmpty(self: str) bool {
 	slice.isEmpty(u8, self);
+}
+
+pub fn toChars(self: str, dest: []char) Error!void {
+	if (dest.len < self.len) {
+		return Error.BufferNotLargeEnough;
+	}
+
+	var vec_idx: usize = 0;
+	var i: usize = 0;
+
+	while (i != self.len) : (i += 1) {
+		const ch = self[vec_idx];
+		const vec_char_size = utf8.size(ch);
+
+		dest[i] = utf8.decode(self[vec_idx..vec_idx + vec_char_size]) orelse unreachable;
+
+		vec_idx += vec_char_size;
+	}
 }

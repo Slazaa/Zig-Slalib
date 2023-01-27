@@ -1,13 +1,13 @@
-pub const Allocator = @import("memory/allocator.zig");
-pub const GeneralAlloc = @import("memory/general_alloc.zig");
+pub const Allocator = @import("memory/Allocator.zig");
+pub const GeneralAlloc = @import("memory/GeneralAlloc.zig");
 
 const assert_ = @import("assert.zig");
 const collections = @import("collections.zig");
-const compare_ = @import("compare.zig");
+const cmp = @import("compare.zig");
 
 const assert = assert_.assert;
 const Vec = collections.Vec;
-const Ordering = compare_.Ordering;
+const Ordering = cmp.Ordering;
 
 pub const Error = error {
 	AllocationFailed

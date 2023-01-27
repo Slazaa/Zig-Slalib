@@ -48,9 +48,7 @@ pub fn floatToString(dest: *Self, num: f64, precision: usize, base: usize) Error
 	while (num_val != 0) : (i += 1) {
 		var ch = @truncate(char, num_val % base);
 
-		if (!foundNonZero and ch != 0) {
-			foundNonZero = true;
-		} else if (foundNonZero) {
+		if (foundNonZero) {
 			ch += switch (ch) {
 				0...9 => 48,
 				10...35 => 65 - 10,
@@ -62,6 +60,8 @@ pub fn floatToString(dest: *Self, num: f64, precision: usize, base: usize) Error
 			}
 
 			try dest.pushFront(ch);
+		} else if (ch != 0) {
+			foundNonZero = true;
 		}
 
 		num_val /= base;
@@ -72,7 +72,7 @@ pub fn floatToString(dest: *Self, num: f64, precision: usize, base: usize) Error
 	}
 }
 
-pub fn from(allocator: ?Allocator, target: str) Error!Self {
+pub fn from(allocator: ?*const Allocator, target: str) Error!Self {
 	return .{
 		.vec = try Vec(u8).from(allocator, target),
 		.len = target.len
@@ -250,6 +250,10 @@ pub fn replacen(self: *Self, target: str, to: str, num: usize) Error!void {
 			break;
 		}
 	}
+}
+
+pub fn toChars(self: *const Self, dest: []char) Error!void {
+	return string.toChars(self.items, dest);
 }
 
 pub fn toString(dest: *Self, target: anytype) Error!void {
