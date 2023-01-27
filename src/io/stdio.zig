@@ -10,61 +10,61 @@ const BufWriter = io.BufWriter;
 const Self = @This();
 
 read: Read = .{
-	.readFn = readFn
+    .readFn = readFn
 },
 
 write: Write = .{
-	.writeFn = writeFn
+    .writeFn = writeFn
 },
 
 fn readFn(iface: *const Read, buffer: []u8) Error!usize {
-	_ = iface;
+    _ = iface;
 
-	switch (bultin.os.tag) {
-		.windows => {
-			const windows = @cImport({
-				@cInclude("windows.h");
-			});
+    switch (bultin.os.tag) {
+        .windows => {
+            const windows = @cImport({
+                @cInclude("windows.h");
+            });
 
-			const stdin = windows.GetStdHandle(windows.STD_INPUT_HANDLE);
+            const stdin = windows.GetStdHandle(windows.STD_INPUT_HANDLE);
 
-			if (stdin == null or stdin == windows.INVALID_HANDLE_VALUE) {
-				return Error.ReadingFailed;
-			}
+            if (stdin == null or stdin == windows.INVALID_HANDLE_VALUE) {
+                return Error.ReadingFailed;
+            }
 
-			var readNum: c_ulong = 0;
+            var readNum: c_ulong = 0;
 
-			if (windows.ReadConsoleA(stdin, buffer.ptr, @intCast(c_ulong, buffer.len), &readNum, null) == 0) {
-				return Error.ReadingFailed;
-			}
+            if (windows.ReadConsoleA(stdin, buffer.ptr, @intCast(c_ulong, buffer.len), &readNum, null) == 0) {
+                return Error.ReadingFailed;
+            }
 
-			return readNum;
-		},
-		else => @compileError("OS not supported")
-	}
+            return readNum;
+        },
+        else => @compileError("OS not supported")
+    }
 }
 
 fn writeFn(iface: *const Write, buffer: []const u8) Error!void {
-	_ = iface;
-	
-	switch (bultin.os.tag) {
-		.windows => {
-			const windows = @cImport({
-				@cInclude("windows.h");
-			});
+    _ = iface;
+    
+    switch (bultin.os.tag) {
+        .windows => {
+            const windows = @cImport({
+                @cInclude("windows.h");
+            });
 
-			const stdout = windows.GetStdHandle(windows.STD_OUTPUT_HANDLE);
+            const stdout = windows.GetStdHandle(windows.STD_OUTPUT_HANDLE);
 
-			if (stdout == null or stdout == windows.INVALID_HANDLE_VALUE) {
-				return Error.WritingFailed;
-			}
+            if (stdout == null or stdout == windows.INVALID_HANDLE_VALUE) {
+                return Error.WritingFailed;
+            }
 
-			var written: c_ulong = 0;
+            var written: c_ulong = 0;
 
-			if (windows.WriteConsoleA(stdout, buffer.ptr, @intCast(c_ulong, buffer.len), &written, null) == 0) {
-				return Error.WritingFailed;
-			}
-		},
-		else => @compileError("OS not supported")
-	}
+            if (windows.WriteConsoleA(stdout, buffer.ptr, @intCast(c_ulong, buffer.len), &written, null) == 0) {
+                return Error.WritingFailed;
+            }
+        },
+        else => @compileError("OS not supported")
+    }
 }

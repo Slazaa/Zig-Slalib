@@ -1,5 +1,5 @@
 pub const Ordering = enum {
-	Less,
-	Equal,
-	Greater
+    Less,
+    Equal,
+    Greater
 };

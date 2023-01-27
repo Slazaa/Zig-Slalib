@@ -10,12 +10,12 @@ target: []u21,
 idx: usize = 0,
 
 pub fn next(self: *Self) ?char {
-	if (self.idx >= self.target.len) {
-		return null;
-	}
+    if (self.idx >= self.target.len) {
+        return null;
+    }
 
-	const res = self.target[self.idx];
-	self.idx += 1;
+    const res = self.target[self.idx];
+    self.idx += 1;
 
-	return res;
+    return res;
 }
