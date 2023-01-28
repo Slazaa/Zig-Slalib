@@ -26,7 +26,16 @@ pub fn equals(self: str, string: str) bool {
 }
 
 pub fn find(self: str, target: anytype) ?usize {
-    return slice.find(u8, self, target);
+    const TargetType = @TypeOf(target);
+
+    if (TargetType == char) {
+        var buffer = [_]u8{ 0 } ** 4;
+        utf8.encode(&buffer, target);
+
+        return slice.find(u8, self, &buffer);
+    } else {
+        return slice.find(u8, self, target);
+    }
 }
 
 pub fn get(self: str, idx: usize) ?char {
@@ -74,7 +83,7 @@ pub fn getStr(self: str, idx: usize, num: usize) ?str {
 }
 
 pub fn isEmpty(self: str) bool {
-    slice.isEmpty(u8, self);
+    return slice.isEmpty(u8, self);
 }
 
 pub fn toChars(self: str, dest: []char) Error!void {

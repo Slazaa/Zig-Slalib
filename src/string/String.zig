@@ -14,15 +14,15 @@ const Error = string.Error;
 
 const Self = @This();
 
-vec: Vec(u8),
+buffer: Vec(u8),
 len: usize = 0,
 
 pub fn asStr(self: *const Self) str {
-    return self.vec.items;
+    return self.buffer.items;
 }
 
 pub fn clear(self: *Self) void {
-    self.vec.clear();
+    self.buffer.clear();
     self.len = 0;
 }
 
@@ -31,7 +31,7 @@ pub fn count(self: *Self, target: str) usize {
 }
 
 pub fn deinit(self: *Self) void {
-    self.vec.deinit();
+    self.buffer.deinit();
 }
 
 pub fn find(self: *const Self, target: str) ?usize {
@@ -56,10 +56,10 @@ pub fn floatToString(dest: *Self, num: f64, precision: usize, base: usize) Error
             };
 
             if (i == precision) {
-                try dest.pushFront('.');
+                try dest.insert(0, '.');
             }
 
-            try dest.pushFront(ch);
+            try dest.insert(0, ch);
         } else if (ch != 0) {
             foundNonZero = true;
         }
@@ -68,13 +68,13 @@ pub fn floatToString(dest: *Self, num: f64, precision: usize, base: usize) Error
     }
 
     if (num < 0) {
-        try dest.pushFront('-');
+        try dest.insert(0, '-');
     }
 }
 
-pub fn from(allocator: ?*const Allocator, target: str) Error!Self {
+pub fn from(allocator: ?Allocator, target: str) Error!Self {
     return .{
-        .vec = try Vec(u8).from(allocator, target),
+        .buffer = try Vec(u8).from(allocator, target),
         .len = target.len
     };
 }
@@ -87,8 +87,8 @@ pub fn getStr(self: *const Self, idx: usize, num: usize) ?str {
     return string.getStr(self.asStr(), idx, num);
 }
 
-pub fn init(allocator: ?*const Allocator) Self {
-    return .{ .vec = Vec(u8).init(allocator) };
+pub fn init(allocator: ?Allocator) Self {
+    return .{ .buffer = Vec(u8).init(allocator) };
 }
 
 pub fn insert(self: *Self, idx: usize, target: anytype) Error!void {
@@ -109,7 +109,7 @@ pub fn insert(self: *Self, idx: usize, target: anytype) Error!void {
                     var j: usize = 0;
 
                     for (target) |byte| {
-                        try self.vec.insert(vec_idx + j, byte);
+                        try self.buffer.insert(vec_idx + j, byte);
                         j += 1;
                     }
 
@@ -118,7 +118,7 @@ pub fn insert(self: *Self, idx: usize, target: anytype) Error!void {
                     return;
                 }
 
-                vec_idx += utf8.size(self.vec.items[vec_idx]);
+                vec_idx += utf8.size(self.buffer.items[vec_idx]);
             }
         },
         char => {
@@ -167,38 +167,33 @@ pub fn last(self: *const Self) ?char {
 }
 
 pub fn pop(self: *Self) ?char {
-    if (self.len == 0) {
-        return null;
-    }
-
-    return self.remove(self.len - 1) catch unreachable;
+    return self.remove(self.len - 1);
 }
 
 pub fn push(self: *Self, target: anytype) Error!void {
     try self.insert(self.len, target);
 }
 
-pub fn remove(self: *Self, idx: usize) Error!char {
+pub fn remove(self: *Self, idx: usize) ?char {
     if (idx > self.len) {
-        return Error.IndexOutOfBounds;
+        return null;
     }
 
     var vec_idx: usize = 0;
     var i: usize = 0;
 
     while (true) : (i += 1) {
-        const vec_char = self.vec.items[vec_idx];
+        const vec_char = self.buffer.items[vec_idx];
         const vec_char_size = utf8.size(vec_char);
 
         if (i == idx) {
             var j: usize = vec_char_size;
 
             while (j != 0) : (j -= 1) {
-                _ = try self.vec.remove(vec_idx);
+                _ = self.buffer.remove(vec_idx);
             }
 
             self.len -= 1;
-
             return vec_char;
         }
 
@@ -206,19 +201,11 @@ pub fn remove(self: *Self, idx: usize) Error!char {
     }
 }
 
-pub fn removen(self: *Self, idx: usize, num: usize) Error!void {
-    if (idx > self.len) {
-        return Error.IndexOutOfBounds;
-    }
-
-    var i: usize = 0;
-
-    while (i != num) : (i += 1) {
-        _ = try self.remove(idx);
-    }
+pub fn replace(self: *Self, target: str, to: str) Error!void {
+    try self.replacen(target, to, string.count(self.asStr(), target));
 }
 
-pub fn removeStr(self: *Self, idx: usize, num: usize) Error!void {
+pub fn removen(self: *Self, idx: usize, num: usize) Error!void {
     if (idx >= self.len or idx + num > self.len) {
         return Error.IndexOutOfBounds;
     }
@@ -226,12 +213,8 @@ pub fn removeStr(self: *Self, idx: usize, num: usize) Error!void {
     var i = idx;
 
     while (i < idx + num) : (i += 1) {
-        _ = try self.remove(idx);
+        _ = self.remove(idx);
     }
-}
-
-pub fn replace(self: *Self, target: str, to: str) Error!void {
-    try self.replacen(target, to, string.count(self.asStr(), target));
 }
 
 pub fn replacen(self: *Self, target: str, to: str, num: usize) Error!void {
@@ -242,8 +225,8 @@ pub fn replacen(self: *Self, target: str, to: str, num: usize) Error!void {
         if (string.find(self.asStr()[idx..], target)) |string_idx| {
             idx += string_idx;
 
-            try self.removeStr(idx, target.len);
-            try self.insertStr(idx, to);
+            try self.removen(idx, target.len);
+            try self.insert(idx, to);
 
             idx += to.len;
         } else {
@@ -252,8 +235,13 @@ pub fn replacen(self: *Self, target: str, to: str, num: usize) Error!void {
     }
 }
 
+pub fn set(self: *Self, idx: usize, ch: char) Error!void {
+    _ = self.remove(idx);
+    try self.insert(idx, ch);
+}
+
 pub fn toChars(self: *const Self, dest: []char) Error!void {
-    return string.toChars(self.items, dest);
+    return string.toChars(self.asStr(), dest);
 }
 
 pub fn toString(dest: *Self, target: anytype) Error!void {
@@ -324,4 +312,8 @@ pub fn trimEnd(self: *Self) void {
             _ = self.pop();
         }
     }
+}
+
+pub fn withCapacity(allocator: ?Allocator, cap: usize) Error!Self {
+    return .{ .buffer = try Vec(u8).withCapacity(allocator, cap) };
 }

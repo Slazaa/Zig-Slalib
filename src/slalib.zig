@@ -7,6 +7,8 @@ pub const memory = @import("memory.zig");
 pub const slice = @import("slice.zig");
 pub const string = @import("string.zig");
 
+const std = @import("std");
+
 pub const char = string.char;
 pub const str = string.str;
 
@@ -17,3 +19,7 @@ pub const format = @import("format.zig").format;
 
 pub const input = io.input;
 pub const print = io.print;
+
+test {
+    std.testing.refAllDeclsRecursive(@This());
+}

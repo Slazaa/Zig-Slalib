@@ -1,22 +1,21 @@
 const std = @import("std");
 
+pub fn add(exe: *std.build.LibExeObjStep, b: *std.build.Builder, comptime path: []const u8) void {
+    const lib = b.addStaticLibrary("lib", path ++ "src/slalib.zig");
+    lib.linkLibC();
+
+    exe.linkLibrary(lib);
+}
+
 pub fn build(b: *std.build.Builder) void {
-	const target = b.standardTargetOptions(.{});
-	const mode = b.standardReleaseOptions();
+    const target = b.standardTargetOptions(.{});
+    const mode = b.standardReleaseOptions();
 
-	const exe = b.addExecutable("TestZig", "src/main.zig");
-	exe.setTarget(target);
-	exe.setBuildMode(mode);
-	exe.linkLibC();
-	exe.install();
+    const lib_tests = b.addTest("src/slalib.zig");
+    add(lib_tests, b, "");
+    lib_tests.setTarget(target);
+    lib_tests.setBuildMode(mode);
 
-	const run_cmd = exe.run();
-	run_cmd.step.dependOn(b.getInstallStep());
-	
-	if (b.args) |args| {
-		run_cmd.addArgs(args);
-	}
-
-	const run_step = b.step("run", "Run the app");
-	run_step.dependOn(&run_cmd.step);
+    const test_step = b.step("test", "Runs the library tests.");
+    test_step.dependOn(&lib_tests.step);
 }

@@ -52,7 +52,7 @@ pub fn equals(comptime T: type, self: []const T, slice: []const T) bool {
         return true;
     }
 
-    return memory.compare(T, self, slice, self.len) == .Equal;
+    return memory.compare(T, self, slice) == .Equal;
 }
 
 pub fn find(comptime T: type, self: []const T, target: anytype) ?usize {
@@ -91,7 +91,7 @@ pub fn find(comptime T: type, self: []const T, target: anytype) ?usize {
             const target_type_info = @typeInfo(TargetType);
 
             if (target_type_info != .Pointer or @typeInfo(target_type_info.Pointer.child) != .Array) {
-                @compileError("Expected single element or slice of element, found " ++ @typeName(TargetType));
+                @compileError("Expected " ++ @typeName(T) ++ " or slice of " ++ @typeName(T) ++ ", found " ++ @typeName(TargetType));
             }
 
             return find(T, self, @as([]const T, target));

@@ -13,33 +13,39 @@ pub const Error = error {
     AllocationFailed
 };
 
-pub fn copy(comptime T: type, dest: []T, src: []const T, size: usize) void {
-    assert(dest.len >= size and src.len >= size);
+pub fn copy(comptime T: type, dest: []T, src: []const T) void {
+    assert(src.len <= dest.len);
 
     var i: usize = 0;
 
-    while (i != size) : (i += 1) {
+    while (i != src.len) : (i += 1) {
         dest[i] = src[i];
     }
 }
 
-pub fn compare(comptime T: type, first: []const T, second: [] const T, size: usize) Ordering {
-    assert(first.len >= size and second.len >= size);
+pub fn compare(comptime T: type, fst: []const T, sec: [] const T) Ordering {
+    assert(fst.len == sec.len);
 
     var i: usize = 0;
 
-    while (i != size) : (i += 1) {
-        if (first[i] < second[i]) return .Less
-        else if (first[i] > second[i]) return .Greater;
+    while (i != fst.len) : (i += 1) {
+        if (fst[i] < sec[i]) return .Less
+        else if (fst[i] > sec[i]) return .Greater;
     }
 
     return .Equal;
 }
 
-pub fn move(comptime T: type, dest: []T, src: []const T, size: usize) collections.Error!void {
-    var tmp = try Vec(T).from(null, src[0..size]);
+pub fn move(comptime T: type, dest: []T, src: []const T) collections.Error!void {
+    var tmp = try Vec(T).from(null, src);
     defer tmp.deinit();
 
-    copy(T, tmp.items, src, size);
-    copy(T, dest, tmp.items, size);
+    copy(T, tmp.items, src);
+    copy(T, dest, tmp.items);
+}
+
+pub fn set(comptime T: type, dest: []T, value: T) void {
+    for (dest) |*d| {
+        d.* = value;
+    }
 }

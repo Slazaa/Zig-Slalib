@@ -21,12 +21,13 @@
 //! try vec.pushSlice(&[_]i32{1, 2, 3});
 //!
 //! for (vec.items) |x| {
-//! 	println("{}", .{ x });
+//!     try print("{}", .{ x });
 //! }
 //!
 //! assert(vec.equals(&[_]i32{7, 1, 2, 3}));
 //! ```
 
+const assert = @import("../assert.zig");
 const collections = @import("../collections.zig");
 const memory = @import("../memory.zig");
 const slice = @import("../slice.zig");
@@ -40,7 +41,7 @@ pub fn Vec(comptime T: type) type {
         const Self = @This();
 
         items: []T = &[_]T{ },
-        allocator: *const Allocator = &GeneralAlloc.allocator,
+        allocator: Allocator = GeneralAlloc.allocator,
         capacity: usize = 0,
 
         /// Clears the vector.
@@ -114,7 +115,7 @@ pub fn Vec(comptime T: type) type {
         /// defer second_vec.deinit();
         ///
         /// if (first_vec.equals(second_vec.items)) {
-        ///		println("Both vectors are equal", .{ });
+        ///     println("Both vectors are equal", .{ });
         /// }
         /// ```
         pub fn equals(self: *const Self, target: []const T) bool {
@@ -143,11 +144,11 @@ pub fn Vec(comptime T: type) type {
         ///
         /// assert(vec.equals(&[_]i32{ 1, 2, 3 }));
         /// ```
-        pub fn from(allocator: ?*const Allocator, target: []const T) Error!Self {
+        pub fn from(allocator: ?Allocator, target: []const T) Error!Self {
             var self = try Self.withCapacity(allocator, target.len);
             self.items.len = self.capacity;
             
-            memory.copy(T, self.items, target, self.len());
+            memory.copy(T, self.items, target);
 
             return self;
         }
@@ -159,7 +160,7 @@ pub fn Vec(comptime T: type) type {
         /// var vec = Vec(i32).init(null);
         /// defer vec.deinit();
         /// ```
-        pub fn init(allocator: ?*const Allocator) Self {
+        pub fn init(allocator: ?Allocator) Self {
             if (allocator) |alloc| {
                 return .{ .allocator = alloc };
             }
@@ -194,8 +195,8 @@ pub fn Vec(comptime T: type) type {
 
                     self.items.len += target.len;
 
-                    try memory.move(T, self.items[idx + target.len..], self.items[idx..],self.len() - (idx + target.len));
-                    memory.copy(T, self.items[idx..], target, target.len);
+                    try memory.move(T, self.items[idx + target.len..], self.items[idx..self.len() - target.len]);
+                    memory.copy(T, self.items[idx..], target);
                 },
                 T => try self.insert(idx, &[_]T{ target }),
                 comptime_float => {
@@ -261,11 +262,7 @@ pub fn Vec(comptime T: type) type {
         /// assert(vec.equals(&[_]i32{ 1, 2 }));
         /// ```
         pub fn pop(self: *Self) ?T {
-            if (self.len == 0) {
-                return null;
-            }
-
-            return self.remove(self.len() - 1) catch unreachable;
+            return self.remove(self.len() - 1);
         }
 
         /// Appends an element or a slice to the back of the vector.
@@ -293,14 +290,14 @@ pub fn Vec(comptime T: type) type {
         /// assert(vec.remove(1) == 2);
         /// assert(vec.equals(&[_]i32{ 1, 3 }));
         /// ```
-        pub fn remove(self:* Self, idx: usize) Error!T {
+        pub fn remove(self:* Self, idx: usize) ?T {
             if (idx >= self.len()) {
-                return Error.IndexOutOfBounds;
+                return null;
             }
 
             var elem = self.items[idx];
 
-            memory.copy(T, self.items[idx..self.len() - 1], self.items[idx + 1..self.len()], (self.len() - 1 - idx));
+            memory.copy(T, self.items[idx..self.len() - 1], self.items[idx + 1..]);
             self.items.len -= 1;
 
             return elem;
@@ -323,7 +320,10 @@ pub fn Vec(comptime T: type) type {
             }
 
             var i: usize = 0;
-            while (i != num) : (i += 1) self.remove(idx);
+
+            while (i != num) : (i += 1) {
+                _ = self.remove(idx);
+            }
         }
 
         /// Replaces all occurencese of `target` with `to`.
@@ -369,9 +369,9 @@ pub fn Vec(comptime T: type) type {
                     while (i < num) : (i += 1) {
                         if (slice.find(T, self.items[idx..], target)) |target_idx| {
                             if (target.len == to.len) {
-                                memory.copy(T, self.items[idx + target_idx..], to, to.len);
+                                memory.copy(T, self.items[idx + target_idx..], to);
                             } else {
-                                memory.move(T, self.items[idx + target_idx..], self.items[idx + target_idx + target.len..], self.len() - (idx + target.len));
+                                try memory.move(T, self.items[idx + target_idx..], self.items[idx + target_idx + target.len..]);
                                 self.items.len -= target.len;
 
                                 try self.insert(idx + target_idx, to);
@@ -446,11 +446,169 @@ pub fn Vec(comptime T: type) type {
         ///
         /// assert(vec.capacity == 10);
         /// ```
-        pub fn withCapacity(allocator: ?*const Allocator, cap: usize) Error!Self {
+        pub fn withCapacity(allocator: ?Allocator, cap: usize) Error!Self {
             var self = Self.init(allocator);
             try self.reserve(cap);
 
             return self;
         }
     };
+}
+
+test "Vec.clear" {
+    var vec = try Vec(i32).from(null, &[_]i32{ 1, 2, 3 });
+    defer vec.deinit();
+
+    vec.clear();
+
+    try assert.expect(vec.equals(&[_]i32{ }));
+}
+
+test "Vec.clone" {
+    var vec = try Vec(i32).from(null, &[_]i32{ 1, 2, 3 });
+    defer vec.deinit();
+
+    var clone = try vec.clone();
+    defer clone.deinit();
+
+    try assert.expect(clone.equals(vec.items));
+}
+
+test "Vec.count" {
+    var vec = try Vec(i32).from(null, &[_]i32{ 1, 2, 3, 2, 2 });
+    defer vec.deinit();
+
+    try assert.expect(vec.count(2) == 3);
+}
+
+test "Vec.find" {
+    var vec = try Vec(i32).from(null, &[_]i32{ 1, 5, 2, 5, 3 });
+    defer vec.deinit();
+
+    try assert.expect(vec.find(5).? == 1);
+    try assert.expect(vec.find(&[_]i32{ 5, 3 }).? == 3);
+}
+
+test "Vec.from" {
+    var vec = try Vec(i32).from(null, &[_]i32{ 1, 2, 3 });
+    defer vec.deinit();
+
+    try assert.expect(vec.equals(&[_]i32{ 1, 2, 3 }));
+}
+
+test "Vec.insert" {
+    var vec = try Vec(i32).from(null, &[_]i32{ 1, 5 });
+    defer vec.deinit();
+
+    try vec.insert(1, 2);
+    try assert.expect(vec.equals(&[_]i32{ 1, 2, 5 }));
+
+    try vec.insert(2, &[_]i32{ 3, 4 });
+    try assert.expect(vec.equals(&[_]i32{ 1, 2, 3, 4, 5 }));
+}
+
+test "Vec.isEmpty" {
+    var vec = Vec(i32).init(null);
+    defer vec.deinit();
+
+    try assert.expect(vec.isEmpty());
+
+    try vec.push(&[_]i32{ 1, 2, 3 });
+    vec.clear();
+
+    try assert.expect(vec.isEmpty());
+}
+
+test "Vec.len" {
+    var vec = try Vec(i32).from(null, &[_]i32{ 1, 2, 3 });
+    defer vec.deinit();
+
+    try assert.expect(vec.len() == 3);
+
+    try vec.push(4);
+
+    try assert.expect(vec.len() == 4);
+
+    _ = vec.pop();
+
+    try assert.expect(vec.len() == 3);
+}
+
+test "Vec.pop" {
+    var vec = try Vec(i32).from(null, &[_]i32{ 1, 2, 3, 10 });
+    defer vec.deinit();
+
+    const popped = vec.pop();
+
+    try assert.expect(popped.? == 10);
+    try assert.expect(vec.equals(&[_]i32{ 1, 2, 3 }));
+}
+
+test "Vec.push" {
+    var vec = try Vec(i32).from(null, &[_]i32{ 1, 2, 3 });
+    defer vec.deinit();
+
+    try vec.push(4);
+
+    try assert.expect(vec.equals(&[_]i32{ 1, 2, 3, 4 }));
+
+    try vec.push(&[_]i32{ 5, 6 });
+
+    try assert.expect(vec.equals(&[_]i32{ 1, 2, 3, 4, 5, 6 }));
+}
+
+test "Vec.remove" {
+    var vec = try Vec(i32).from(null, &[_]i32{ 1, 10, 2, 3 });
+    defer vec.deinit();
+
+    const removed = vec.remove(1);
+
+    try assert.expect(removed.? == 10);
+    try assert.expect(vec.equals(&[_]i32{ 1, 2, 3 }));
+}
+
+test "Vec.removen" {
+    var vec = try Vec(i32).from(null, &[_]i32{ 1, 10, 10, 2, 3 });
+    defer vec.deinit();
+
+    try vec.removen(1, 2);
+
+    try assert.expect(vec.equals(&[_]i32{ 1, 2, 3 }));
+}
+
+test "Vec.replace" {
+    var vec = try Vec(i32).from(null, &[_]i32{ 10, 20, 30, 40, 50, 60 });
+    defer vec.deinit();
+
+    try vec.replace(&[_]i32{ 10 }, 1);
+    try vec.replace(&[_]i32{ 20 }, &[_]i32{ 2, 3 });
+    try vec.replace(&[_]i32{ 30, 40 }, 4);
+    try vec.replace(&[_]i32{ 50, 60 }, &[_]i32{ 5, 6 });
+
+    try assert.expect(vec.equals(&[_]i32{ 1, 2, 3, 4, 5, 6 }));
+}
+
+test "Vec.replacen" {
+    var vec = try Vec(i32).from(null, &[_]i32{ 10, 10, 10 });
+    defer vec.deinit();
+
+    try vec.replacen(&[_]i32{ 10 }, 5, 2);
+
+    try assert.expect(vec.equals(&[_]i32{ 5, 5, 10 }));
+}
+
+test "Vec.reserve" {
+    var vec = Vec(i32).init(null);
+    defer vec.deinit();
+
+    try vec.reserve(3);
+
+    try assert.expect(vec.capacity == 3);
+}
+
+test "Vec.withCapacity" {
+    var vec = try Vec(i32).withCapacity(null, 3);
+    defer vec.deinit();
+
+    try assert.expect(vec.capacity == 3);
 }

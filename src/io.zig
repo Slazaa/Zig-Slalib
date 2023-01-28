@@ -5,10 +5,11 @@ const write = @import("io/write.zig");
 const str = string.str;
 const String = string.String;
 
-pub const Read = @import("io/read.zig");
-pub const Stdio = @import("io/stdio.zig");
-pub const BufWriter = write.BufWriter;
-pub const Write = write.Write;
+pub const BufReader = @import("io/BufReader.zig");
+pub const BufWriter = @import("io/BufWriter.zig");
+pub const Read = @import("io/Read.zig");
+pub const Stdio = @import("io/Stdio.zig");
+pub const Write = @import("io/Write.zig");
 
 pub const stdio = Stdio { };
 
