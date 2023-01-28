@@ -1,6 +1,5 @@
 const format = @import("format.zig");
 const string = @import("string.zig");
-const write = @import("io/write.zig");
 
 const str = string.str;
 const String = string.String;
