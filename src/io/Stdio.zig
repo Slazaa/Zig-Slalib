@@ -1,5 +1,12 @@
 const bultin = @import("builtin");
 
+const c = @cImport({
+    switch (bultin.os.tag) {
+        .windows => @cInclude("windows.h"),
+        else => @panic("TODO") // TODO
+    }
+});
+
 const io = @import("../io.zig");
 
 const Error = io.Error;
@@ -22,10 +29,6 @@ fn readFn(iface: *const Read, buffer: []u8) Error!usize {
 
     switch (bultin.os.tag) {
         .windows => {
-            const c = @cImport({
-                @cInclude("windows.h");
-            });
-
             const stdin = c.GetStdHandle(c.STD_INPUT_HANDLE);
 
             if (stdin == null or stdin == c.INVALID_HANDLE_VALUE) {
@@ -49,10 +52,6 @@ fn writeFn(iface: *const Write, buffer: []const u8) Error!void {
     
     switch (bultin.os.tag) {
         .windows => {
-            const c = @cImport({
-                @cInclude("windows.h");
-            });
-
             const stdout = c.GetStdHandle(c.STD_OUTPUT_HANDLE);
 
             if (stdout == null or stdout == c.INVALID_HANDLE_VALUE) {
