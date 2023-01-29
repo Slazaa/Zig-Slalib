@@ -10,8 +10,6 @@ const collections = @import("collections.zig");
 const memory = @import("memory.zig");
 const slice = @import("slice.zig");
 
-const std = @import("std");
-
 pub const Error = collections.Error || error {
     BufferNotLargeEnough
 };
@@ -61,8 +59,6 @@ pub fn getStr(self: str, idx: usize, num: usize) ?str {
     var i: usize = 0;
 
     while (true) : (i += 1) {
-        std.debug.print("{} {}\n", .{ i, vec_idx });
-
         const ch = self[vec_idx];
         const vec_char_size = utf8.size(ch);
 
