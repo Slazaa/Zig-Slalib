@@ -22,19 +22,19 @@ fn readFn(iface: *const Read, buffer: []u8) Error!usize {
 
     switch (bultin.os.tag) {
         .windows => {
-            const windows = @cImport({
+            const c = @cImport({
                 @cInclude("windows.h");
             });
 
-            const stdin = windows.GetStdHandle(windows.STD_INPUT_HANDLE);
+            const stdin = c.GetStdHandle(c.STD_INPUT_HANDLE);
 
-            if (stdin == null or stdin == windows.INVALID_HANDLE_VALUE) {
+            if (stdin == null or stdin == c.INVALID_HANDLE_VALUE) {
                 return Error.ReadingFailed;
             }
 
             var readNum: c_ulong = 0;
 
-            if (windows.ReadConsoleA(stdin, buffer.ptr, @intCast(c_ulong, buffer.len), &readNum, null) == 0) {
+            if (c.ReadConsoleA(stdin, buffer.ptr, @intCast(c_ulong, buffer.len), &readNum, null) == 0) {
                 return Error.ReadingFailed;
             }
 
@@ -49,19 +49,23 @@ fn writeFn(iface: *const Write, buffer: []const u8) Error!void {
     
     switch (bultin.os.tag) {
         .windows => {
-            const windows = @cImport({
+            const c = @cImport({
                 @cInclude("windows.h");
             });
 
-            const stdout = windows.GetStdHandle(windows.STD_OUTPUT_HANDLE);
+            const stdout = c.GetStdHandle(c.STD_OUTPUT_HANDLE);
 
-            if (stdout == null or stdout == windows.INVALID_HANDLE_VALUE) {
+            if (stdout == null or stdout == c.INVALID_HANDLE_VALUE) {
+                return Error.WritingFailed;
+            }
+
+            if (c.SetConsoleOutputCP(65001) == 0) {
                 return Error.WritingFailed;
             }
 
             var written: c_ulong = 0;
 
-            if (windows.WriteConsoleA(stdout, buffer.ptr, @intCast(c_ulong, buffer.len), &written, null) == 0) {
+            if (c.WriteConsoleA(stdout, buffer.ptr, @intCast(c_ulong, buffer.len), &written, null) == 0) {
                 return Error.WritingFailed;
             }
         },
