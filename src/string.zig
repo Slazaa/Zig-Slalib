@@ -105,7 +105,7 @@ pub fn toChars(self: str, dest: []char) Error!void {
     }
 }
 
-test "getStr" {
+test "string.getStr" {
     const string = "Hello!";
 
     try assert.expect(equals(getStr(string, string.len - 1, 1).?, "!"));

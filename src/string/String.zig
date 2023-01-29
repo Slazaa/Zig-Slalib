@@ -1,3 +1,4 @@
+const assert = @import("../assert.zig");
 const collections = @import("../collections.zig");
 const math = @import("../math.zig");
 const memory = @import("../memory.zig");
@@ -13,6 +14,7 @@ const Allocator = memory.Allocator;
 const Error = string.Error;
 
 const Self = @This();
+const String = Self;
 
 buffer: Vec(u8),
 len: usize = 0,
@@ -32,6 +34,10 @@ pub fn count(self: *Self, target: str) usize {
 
 pub fn deinit(self: *Self) void {
     self.buffer.deinit();
+}
+
+pub fn equals(self: *Self, target: str) bool {
+    return string.equals(self.buffer.items, target);
 }
 
 pub fn find(self: *const Self, target: str) ?usize {
@@ -236,8 +242,21 @@ pub fn replacen(self: *Self, target: str, to: str, num: usize) Error!void {
 }
 
 pub fn set(self: *Self, idx: usize, ch: char) Error!void {
-    _ = self.remove(idx);
-    try self.insert(idx, ch);
+    const char_size = utf8.size(ch);
+
+    if (self.len == char_size) {
+        var utf8_char = [_]u8{ 0 } ** 4;
+        utf8.encode(&utf8_char, ch);
+
+        var i: usize = 0;
+
+        while (i < char_size) : (i += 1) {
+            self.buffer.items[idx + i] = utf8_char[idx + i];
+        }
+    } else {
+        _ = self.remove(idx);
+        try self.insert(idx, ch);
+    }
 }
 
 pub fn toChars(self: *const Self, dest: []char) Error!void {
@@ -316,4 +335,14 @@ pub fn trimEnd(self: *Self) void {
 
 pub fn withCapacity(allocator: ?Allocator, cap: usize) Error!Self {
     return .{ .buffer = try Vec(u8).withCapacity(allocator, cap) };
+}
+
+test "String.set " {
+    var test_string = try String.from(null, "Hallo?");
+    defer test_string.deinit();
+
+    try test_string.set(1, 'e');
+    try test_string.set(test_string.len - 1, '!');
+
+    try assert.expect(test_string.equals("Hello!"));
 }
