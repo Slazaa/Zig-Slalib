@@ -5,9 +5,12 @@ pub const String = @import("string/String.zig");
 pub const StringIter = @import("string/StringIter.zig");
 pub const utf8 = @import("string/utf8.zig");
 
+const assert = @import("assert.zig");
 const collections = @import("collections.zig");
 const memory = @import("memory.zig");
 const slice = @import("slice.zig");
+
+const std = @import("std");
 
 pub const Error = collections.Error || error {
     BufferNotLargeEnough
@@ -21,8 +24,8 @@ pub fn count(self: str, target: anytype) usize {
     return slice.count(u8, self, target);
 }
 
-pub fn equals(self: str, string: str) bool {
-    return slice.equals(u8, self, string);
+pub fn equals(self: str, target: str) bool {
+    return slice.equals(u8, self, target);
 }
 
 pub fn find(self: str, target: anytype) ?usize {
@@ -58,6 +61,8 @@ pub fn getStr(self: str, idx: usize, num: usize) ?str {
     var i: usize = 0;
 
     while (true) : (i += 1) {
+        std.debug.print("{} {}\n", .{ i, vec_idx });
+
         const ch = self[vec_idx];
         const vec_char_size = utf8.size(ch);
 
@@ -73,7 +78,7 @@ pub fn getStr(self: str, idx: usize, num: usize) ?str {
             const char_size = utf8.size(char_utf8[0]);
             end_res += char_size;
 
-            if (i == idx + num) {
+            if (i == idx + num - 1) {
                 return self[start_res..end_res];
             }
         }
@@ -102,4 +107,10 @@ pub fn toChars(self: str, dest: []char) Error!void {
 
         vec_idx += vec_char_size;
     }
+}
+
+test "getStr" {
+    const string = "Hello!";
+
+    try assert.expect(equals(getStr(string, string.len - 1, 1).?, "!"));
 }
