@@ -16,21 +16,17 @@ pub const Error = error {
 pub fn copy(comptime T: type, dest: []T, src: []const T) void {
     assert(src.len <= dest.len);
 
-    var i: usize = 0;
-
-    while (i != src.len) : (i += 1) {
-        dest[i] = src[i];
+    for (src) |d, i| {
+        dest[i] = d;
     }
 }
 
 pub fn compare(comptime T: type, fst: []const T, sec: [] const T) Ordering {
     assert(fst.len == sec.len);
 
-    var i: usize = 0;
-
-    while (i != fst.len) : (i += 1) {
-        if (fst[i] < sec[i]) return .Less
-        else if (fst[i] > sec[i]) return .Greater;
+    for (fst) |d, i| {
+        if (d < sec[i]) return .Less
+        else if (d > sec[i]) return .Greater;
     }
 
     return .Equal;
