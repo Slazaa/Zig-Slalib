@@ -437,6 +437,22 @@ pub fn Vec(comptime T: type) type {
             self.items.ptr = @ptrCast([*]T, @alignCast(@alignOf(T), try new_mem));
         }
 
+        pub fn resize(self: *Self, new_len: usize, value: T) Error!void {
+            const old_len = self.len();
+
+            self.items.len = new_len;
+
+            if (new_len > old_len) {
+                try self.reserve(self.len() - old_len);
+
+                var i: usize = old_len;
+
+                while (i != self.len()) : (i += 1) {
+                    self.items[i] = value;
+                } 
+            }
+        }
+
         /// Initializes a new vector with at least the given capacity.
         ///
         /// # Examples
@@ -604,6 +620,19 @@ test "Vec.reserve" {
     try vec.reserve(3);
 
     try assert.expect(vec.capacity == 3);
+}
+
+test "Vec.resize" {
+    var vec = try Vec(i32).from(null, &[_]i32{ 1, 2, 3, 4 });
+    defer vec.deinit();
+
+    try vec.resize(2, 0);
+
+    try assert.expect(vec.equals(&[_]i32{ 1, 2 }));
+
+    try vec.resize(4, 5);
+
+    try assert.expect(vec.equals(&[_]i32{ 1, 2, 5, 5 }));
 }
 
 test "Vec.withCapacity" {

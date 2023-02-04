@@ -2,7 +2,7 @@
 A anternative for the standard library inspired from the Rust standard library.
 For now, Slalib relies libc but in the future it will not depend on anything.
 
-## Features
+## Goals
 - [x] Assert
 - [ ] Collections
 	- [ ] Queue

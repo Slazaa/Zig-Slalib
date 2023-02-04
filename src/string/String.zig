@@ -28,6 +28,13 @@ pub fn clear(self: *Self) void {
     self.len = 0;
 }
 
+pub fn clone(self: *const Self) Error!Self {
+    return Self {
+        .buffer = try self.buffer.clone(),
+        .len = self.len
+    };
+}
+
 pub fn count(self: *Self, target: str) usize {
     return string.count(self.asStr(), target);
 }
